@@ -1,0 +1,33 @@
+
+
+states (hashmap, ID -> state) {
+    pops
+    owner
+}
+
+countries {
+    laws
+    states' key
+}
+
+
+pops {
+    ID of location
+
+}
+
+hashmap(id -> pop)
+hashmap(id -> state)
+hashmap(id -> workplace)
+hashmap(id -> religion)
+hashmap(id -> culture)
+hashmap(id -> country)
+
+provinces are organized as such:
+
+Sort by Strategic Region
+
+Sort by State ID
+
+Scan from bottom up, left to right.
+
