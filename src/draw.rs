@@ -1,7 +1,7 @@
 
 
 use super::map;
-use super::analyse;
+use super::file_analyser;
 use super::save::Save;
 
 use std::error::Error;
@@ -36,7 +36,7 @@ impl DrawMap {
         let mut tags: HashMap<String, Rgb<u8>> = HashMap::new();
         let mut ids: HashMap<usize, Rgb<u8>> = HashMap::new();
 
-        let province_map = analyse::get_provinces(false, resize)?;
+        let province_map = file_analyser::get_provinces(false, resize)?;
         let (width, height) = province_map.dimensions();
 
         let mut new_map = province_map.clone();
@@ -143,16 +143,16 @@ impl DrawMap {
             }
         }
         if versions[0] {
-            analyse::save(pat, &format!("{nam}_debug.png"), province_map)?;
+            file_analyser::save(pat, &format!("{nam}_debug.png"), province_map)?;
         }
         if versions[1] {
-            analyse::save(pat, &format!("{nam}_emptylines.png"), a)?;
+            file_analyser::save(pat, &format!("{nam}_emptylines.png"), a)?;
         }
         if versions[2] {
-            analyse::save(pat, &format!("{nam}.png"), new_map)?;
+            file_analyser::save(pat, &format!("{nam}.png"), new_map)?;
         }
         if versions[3] {
-            analyse::save(pat, &format!("{nam}_lines.png"), b.unwrap())?;
+            file_analyser::save(pat, &format!("{nam}_lines.png"), b.unwrap())?;
         }
         Ok(())
     }

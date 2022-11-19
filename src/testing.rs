@@ -19,7 +19,7 @@ use nom::{
     bytes::complete::is_not
 };
 use std::str;
-
+use crate::save::save_scanner::GetData;
 use nom::bytes::complete::tag;
 
 pub fn tester() -> Result<(), Box<dyn Error>> {
@@ -43,94 +43,97 @@ pub fn tester() -> Result<(), Box<dyn Error>> {
     let stert = std::str::from_utf8(&writer)?;
 
 
+    let sav = super::save::Save::new(stert)?;
 
-
-    Stuff::new(Some("save"), stert);
     panic!();
-
-
-    printer(stert.get(0..1000).unwrap());
-
 
     Ok(())
 }
 
-fn printer(inp: &str) {
 
-    // let mut parser = delimited::<_, _, _, _, nom::error::Error<_>, _, _, _>(tag("("), tag("abc"), tag(")"));
-
-    println!("{:?}", parser("{abc}"));
-    println!("{:?}", parser("{abc}def"));
-    println!("{:?}", parser(""));
-    println!("{:?}", parser("22{123234234234234234}11"));
-    println!("{:?}", parser("{123234234234234234}11"));
-    println!("{:?}", parser(inp));
-
-    // let inp = "ablataetoof{rrwd}gefe";
-    // let a = parens(inp).unwrap();
-    // println!("{}", a.0);
-    // println!();
-    // println!("{}", a.1);
-
-}
-
-fn parser(input: &str) -> IResult<&str, &str> {
-    delimited(char('{'), is_not("}"), char('}'))(input)
-}
-
-// enum StrType<'a> {
-//     Utf8(Stuff<'a>),
-//     Asci(Stuff<'a>),
+// fn printer(mut temp: SaveIterator, depth: usize) {
+//     while let Some(data) = temp.next() {
+//         if depth == 0 {
+//             // wait();
+//         }
+//         match data {
+//             DataStructure::Itr((a, b)) => {
+//                 // println!();
+//                 for i in 0..depth {
+//                     // print!("\t")
+//                 }
+//                 // print!("{} -> ", a);
+//                 printer(b, depth + 1);
+//             }
+//             DataStructure::Val(a) => {
+//                 // println!(" -> {}", a);
+//             }
+//         }
+//     }
 // }
 
-struct Stuff<'a> {
-    it:     Box<dyn Iterator<Item = (Option<&'a str>, Stuff<'a>)>>,
-    data:   &'a str
-}
 
-impl<'a> Stuff<'a> {
-    fn new(name: Option<&str>, data: &str) -> Stuff<'a> {
-        let mut depth = 0;
-        let closure = |c: char| -> bool {
-            // std::thread::sleep(std::time::Duration::from_millis(100));
-            // print!("{}({depth})", c);
-            // if c.is_whitespace() {
-            //     println!("{depth}");
-            // }
-            match c {
-                '{' => {
-                    depth += 1;
-                    false
-                }
-                '}' => {
-                    depth -= 1;
-                    false
-                }
-                c1 if depth == 0 && c1.is_whitespace() => true,
-                _ => false
-            }
-        };
-        // let it =
-        // data.split(|c: char| c.is_whitespace()).filter(|s| !s.is_empty()).for_each(|x| println!("{}", x));
-        for i in data.split(closure).inspect(|x| panic!("{}", x)).filter(|s| !s.is_empty()).enumerate() {
+// trait GetData {
+//     fn consume(&self, inp: SaveIterator) {}
+// }
 
-            // let a = i.split('=');
-            println!("{:?}\n", i.0);
-            println!("{}", i.1);
-            wait()
-        }
-        // let ret = Stuff {
-        //     it,
-        //     data
-        // };
-        unimplemented!()
-    }
-}
+
+// struct SaveIterator<'a>(Box<dyn Iterator<Item = &'a str> + 'a>);
+
+
+
+// impl<'a> SaveIterator<'a> {
+//     fn new(data: &'a str, first: bool) -> Self {
+
+//         if !first {
+//             // println!("stuff: {:?}", data);
+//         }
+
+//         let mut depth = 0;
+//         let mut para = false;
+//         let mut closure = move |c: char| -> bool {
+//             match c {
+//                 '{' => depth += 1,
+//                 '}' => depth -= 1,
+//                 '"' => para  =! para,
+//                 _ => {}
+//             }
+//             c.is_whitespace() && depth == 0 && !para
+//         };
+//         SaveIterator(Box::new(data.trim().split(closure).map(|u| u.trim()).filter(|p| !p.is_empty())))
+//     }
+// }
+
+// enum DataStructure<'a> {
+//     Itr((&'a str, SaveIterator<'a>)),
+//     Val(&'a str)
+// }
+
+// impl<'a> DataStructure<'a> {
+//     // fn data_harvest()
+// }
+
+// impl<'a> Iterator for SaveIterator<'a> {
+
+//     type Item = DataStructure<'a>;
+
+//     fn next(&mut self) -> Option<Self::Item> {
+
+//         self.0.next()//.inspect(|w| println!("\n{:?}\n", w))
+//             .and_then(|x| Some(x.split_once(|c| c == '=' || c == '{')//.inspect(|w| println!("\n{:?}\n", w))
+//                 .map_or_else(
+//                     || DataStructure::Val(x),
+//                     |y| DataStructure::Itr((y.0, SaveIterator::new(y.1.strip_prefix('{').and_then(|f| f.strip_suffix('}')).unwrap_or(y.1), false)))))
+//             )
+//     }
+// }
+
 
 fn wait() {
     use std::io::{stdin,stdout,Write};
-    println!("Please enter some text: ");
+    // println!("Please enter some text: ");
     let mut a = String::new();
     let _ = stdout().flush();
     let _ = stdin().read_line(&mut a);
 }
+

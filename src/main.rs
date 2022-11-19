@@ -1,10 +1,10 @@
-#![feature(iterator_try_collect)]
+#![feature(iterator_try_collect, result_option_inspect, return_position_impl_trait_in_trait, type_alias_impl_trait, is_some_and)]
 #![allow(dead_code, unreachable_code)]
 
 use std::error::Error;
 use image::Rgb;
 
-mod analyse;
+mod file_analyser;
 mod save;
 mod map;
 mod draw;
@@ -71,7 +71,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // println!("{} {} {}", pops.len(), states.len(), countries.len());
 
 
-    analyse::delete()?;
+    file_analyser::delete()?;
 
     Ok(())
 }

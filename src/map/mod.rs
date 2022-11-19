@@ -11,7 +11,7 @@ mod strategic;
 
 // use statetemplates::StateTemplate;
 use strategic::{StrategicRegion, statetemplates::StateTemplate};
-use super::analyse;
+use super::file_analyser;
 
 #[derive(Debug, Default)]
 pub struct Map {
@@ -31,11 +31,11 @@ impl Map {
         let mut strategic_regions = Vec::new();
         let mut state_templates = Vec::new();
 
-        for entry in analyse::get_glob("game/map_data/state_regions", "txt")? {
+        for entry in file_analyser::get_glob("game/map_data/state_regions", "txt")? {
 
             // break;
 
-            let (mut fileiter, name) = analyse::get_file(entry?.to_str().unwrap(), false)?;
+            let (mut fileiter, name) = file_analyser::get_file(entry?.to_str().unwrap(), false)?;
 
 
             while let Some(mut a) = StateTemplate::new(&mut fileiter, name == "99_seas.txt")? {
@@ -47,11 +47,11 @@ impl Map {
         }
 
         let mut offset = 1;
-        for entry in analyse::get_glob("game/common/strategic_regions", "txt")? {
+        for entry in file_analyser::get_glob("game/common/strategic_regions", "txt")? {
 
             // break;
 
-            let (mut fileiter, name) = analyse::get_file(entry?.to_str().unwrap(), false)?;
+            let (mut fileiter, name) = file_analyser::get_file(entry?.to_str().unwrap(), false)?;
 
 
             // this is a bit of a mess. A vector of states is passed in so they can be assigned to the new strategic regions as they're created.
@@ -66,11 +66,11 @@ impl Map {
         let mut countries = HashMap::new();
         let id_reg = Regex::new(r#"^([A-Z]{3}) = \{|^\tcolor = ([a-z\{\} .0-9]+)"#)?;
 
-        for entry in analyse::get_glob("game/common/country_definitions", "txt")? {
+        for entry in file_analyser::get_glob("game/common/country_definitions", "txt")? {
 
             // break;
 
-            let (mut data, _) = analyse::get_file(entry?.to_str().unwrap(), false)?;
+            let (mut data, _) = file_analyser::get_file(entry?.to_str().unwrap(), false)?;
 
             let mut tag = String::new();
 
@@ -83,7 +83,7 @@ impl Map {
                         if tag.chars().count() != 3 {
                             panic!();
                         }
-                        countries.insert(tag, analyse::to_rgb(c)?);
+                        countries.insert(tag, file_analyser::to_rgb(c)?);
                         tag = String::new();
                     }
                 }
@@ -109,7 +109,7 @@ impl Map {
 
         // flipv so iterating through goes left-right, down-up, as opposed to left-right, up-down. That way, assigning province index and ID can be done iteratively,
         // as provinces in each state are enumerated based on whick is encountered first when scanning through the image, pixel by pixel, in this way.
-        let img = analyse::get_provinces(true, None)?;
+        let img = file_analyser::get_provinces(true, None)?;
 
 
         let mut provinces: Vec<(Option<Rgb<u8>>, usize)> = vec![(None, 0); strategic_regions.iter().map(|x| x.size()).sum::<usize>() + 1];

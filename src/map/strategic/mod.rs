@@ -7,7 +7,7 @@ use std::error::Error;
 pub mod statetemplates;
 
 use statetemplates::StateTemplate;
-use super::analyse;
+use super::file_analyser;
 
 #[derive(Debug, Default)]
 pub struct StrategicRegion {
@@ -66,7 +66,7 @@ impl StrategicRegion {
                     // println!("{:?}", ret.name);
                     // println!("{:?}", temp);
                     // println!("{:?}", ret.name);
-                    ret.color = Some(analyse::to_rgb(c)?);
+                    ret.color = Some(file_analyser::to_rgb(c)?);
                 }
                 if let Some(c) = b.get(5).map_or(None, |m| Some(m.as_str())) {
                     let names: Vec<String> = c.split(' ').map(|x| x.to_owned()).collect();

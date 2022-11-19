@@ -4,6 +4,8 @@
 use regex::Regex;
 use std::error::Error;
 
+use super::save_scanner::{GetData, SaveIterator, DataStructure};
+
 #[derive(Debug, Default)]
 pub struct Country {
     // empty
@@ -154,4 +156,11 @@ impl Country {
     //     self.states     .is_some()&
     //     self.c_type     .is_some()
     // }
+}
+
+
+impl GetData for Country {
+    fn consume_one(_: SaveIterator) -> Result<Self, Box<dyn Error>> {
+        Ok(Self::default())
+    }
 }

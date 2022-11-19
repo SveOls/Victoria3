@@ -4,6 +4,8 @@
 use regex::Regex;
 use std::{error::Error, io};
 
+use super::{save_scanner::{GetData, SaveIterator, DataStructure}, Save};
+
 #[allow(dead_code)]
 #[derive(Debug, Default)]
 pub struct Pop {
@@ -135,5 +137,64 @@ impl Pop {
     }
     pub fn empty(&self) -> bool {
         self.empty
+    }
+}
+
+
+impl GetData for Pop {
+    fn consume_one(mut data: SaveIterator) -> Result<Self, Box<dyn Error>> {
+
+        let mut empty:          bool            = false;
+        // let mut t_id:           Option<usize>   = None;
+        let mut t_profession:   Option<String>  = None;
+        let mut t_religion:     Option<String>  = None;
+        let mut t_culture:      Option<usize>   = None;
+        let mut t_location:     Option<usize>   = None;
+        let mut workplace:      Option<usize>   = None;
+        let mut literacy:       usize           = 0;
+        let mut t_workforce:    Option<usize>   = None;
+        let mut t_dependents:   Option<usize>   = None;
+        let mut t_wealth:       Option<usize>   = None;
+
+        while let Some(pile) = data.next() {
+            match pile? {
+                DataStructure::Itr(("type", a))     => t_profession = Some(a.y_str()?.to_owned()),
+                DataStructure::Itr(("size_wa", a))  => t_workforce  = Some(a.y_parse()?),
+                DataStructure::Itr(("size_dn", a))  => t_dependents = Some(a.y_parse()?),
+                DataStructure::Itr(("location", a)) => t_location   = Some(a.y_parse()?),
+                DataStructure::Itr(("religion", a)) => t_religion   = Some(a.y_str()?.to_owned()),
+                DataStructure::Itr(("culture", a))  => t_culture    = Some(a.y_parse()?),
+                DataStructure::Itr(("literate", a)) =>   literacy   =      a.y_parse()?,
+                DataStructure::Itr(("wealth", a))   => t_wealth     = Some(a.y_parse()?),
+                DataStructure::Itr(("workplace", a))=>   workplace  = Some(a.y_parse()?),
+
+                DataStructure::Val("none") => empty = true,
+
+                _ => {}
+            }
+        }
+        if let ( Some(profession),       Some(religion), Some(culture),  Some(location), Some(workforce),    Some(dependents),   Some(wealth))
+         =     ( t_profession.clone(),   t_religion,     t_culture,      t_location,     t_workforce,        t_dependents,       t_wealth) {
+            Ok(Self {
+                id: 0,
+                profession,
+                religion,
+                culture,
+                location,
+                workplace,
+                literacy,
+                workforce,
+                dependents,
+                wealth,
+                empty
+            })
+        } else if empty {
+            let mut ret = Pop::default();
+            ret.empty = true;
+            Ok(ret)
+        } else {
+            Err(Box::new(io::Error::new(io::ErrorKind::Other, "Incorrectly Initialized Pop")))
+        }
+
     }
 }

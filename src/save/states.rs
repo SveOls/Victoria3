@@ -4,6 +4,7 @@ use std::error::Error;
 
 use super::pops::Pop;
 use super::super::map::Map;
+use super::save_scanner::{GetData, SaveIterator, DataStructure};
 
 #[derive(Debug, Default)]
 pub struct State {
@@ -140,5 +141,12 @@ impl State {
     }
     pub fn area(&self, data: &Map) -> usize {
             data.area(self.provinces())
+    }
+}
+
+
+impl GetData for State {
+    fn consume_one(_: SaveIterator) -> Result<Self, Box<dyn Error>> {
+        Ok(Self::default())
     }
 }
