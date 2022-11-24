@@ -37,9 +37,9 @@ pub fn run() -> Result<(), VicError> {
     let mut save_dir = PathBuf::new().join("/mnt/c/Users/sverr/Documents/Paradox Interactive/Victoria 3");
 
     // println!("{:?}", game_dir);
-    // if let Some(a) = find_dir("game")? {
-    //     game_dir = PathBuf::new().join(&a)
-    // }
+    if let Some(a) = find_dir("game")? {
+        game_dir = PathBuf::new().join(&a)
+    }
     // println!("{:?}", game_dir);
     // println!("{:?}", save_dir);
     let save_files = find_files("save")?;
