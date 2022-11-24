@@ -4,6 +4,8 @@
 #![allow(unused_imports)]
 #![allow(unused_variables)]
 #![allow(unused_mut)]
+#![allow(dead_code)]
+#![allow(unreachable_code)]
 
 use std::fs::File;
 use std::{fs, io};
@@ -11,16 +13,7 @@ use std::io::{prelude::*, BufReader};
 use image::{ImageBuffer, Pixel};
 use std::error::Error;
 use glob::{glob, Paths, PatternError};
-use nom::{
-    IResult,
-    sequence::delimited,
-    // see the "streaming/complete" paragraph lower for an explanation of these submodules
-    character::complete::char,
-    bytes::complete::is_not
-};
 use std::str;
-use crate::save::save_scanner::GetData;
-use nom::bytes::complete::tag;
 
 pub fn tester() -> Result<(), Box<dyn Error>> {
 
@@ -43,7 +36,8 @@ pub fn tester() -> Result<(), Box<dyn Error>> {
     let stert = std::str::from_utf8(&writer)?;
 
 
-    let sav = super::save::Save::new(stert)?;
+    // let sav1 = super::save::Save::new(stert)?;
+
 
     panic!();
 
@@ -129,11 +123,19 @@ pub fn tester() -> Result<(), Box<dyn Error>> {
 // }
 
 
-fn wait() {
+pub fn wait() -> bool {
     use std::io::{stdin,stdout,Write};
-    // println!("Please enter some text: ");
+    println!("keep this? y/n ");
     let mut a = String::new();
     let _ = stdout().flush();
     let _ = stdin().read_line(&mut a);
+    println!(">{a:?}<");
+    if a == "y\n" {
+        true
+    } else if a == "n\n" {
+        false
+    } else {
+        wait()
+    }
 }
 

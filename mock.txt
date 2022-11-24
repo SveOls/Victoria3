@@ -31,3 +31,13 @@ Sort by State ID
 
 Scan from bottom up, left to right.
 
+
+Behavior of "{":
+"____={" OR " {".
+Behabior of "=":
+"___={" OR "___=___".
+
+a "recursive" analyzer would iterate through the save file, looking for =, ={ and {. If any of these are encountered, match on the preceding info.
+if the data is uninteresting, skip forward until next }. If it is interesting, pass it to relevant function with a return value. Returns upon finding }.
+
+I could build an iterator.

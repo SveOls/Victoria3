@@ -1,13 +1,12 @@
 
 
 
-use regex::Regex;
 use std::{error::Error, io};
 
-use super::{save_scanner::{GetData, SaveIterator, DataStructure}, Save};
+use crate::scanner::{GetMapData, DataStructure, MapIterator, DataFormat};
 
 #[allow(dead_code)]
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Pop {
     id:         usize,
     profession: String,
@@ -15,7 +14,7 @@ pub struct Pop {
     culture:    usize,
     location:   usize,
     workplace:  Option<usize>,
-    literacy:   usize,
+    literates:  usize,
     workforce:  usize,
     dependents: usize,
     wealth:     usize,
@@ -24,94 +23,6 @@ pub struct Pop {
 
 
 impl Pop {
-    pub fn new(data: &mut impl Iterator<Item = String>) -> Result<Option<Self>, Box<dyn Error>> {
-
-        let mut t_id:           Option<usize>   = None;
-        let mut t_profession:   Option<String>  = None;
-        let mut t_religion:     Option<String>  = None;
-        let mut t_culture:      Option<usize>   = None;
-        let mut t_location:     Option<usize>   = None;
-        let mut workplace:      Option<usize>   = None;
-        let mut literacy:       usize           = 0;
-        let mut t_workforce:    Option<usize>   = None;
-        let mut t_dependents:   Option<usize>   = None;
-        let mut t_wealth:       Option<usize>   = None;
-
-        let id_reg = Regex::new(r#"^([0-9]+)=\{|^\ttype="([A-z]+)"|^\tsize_wa=([0-9]+)|^\tsize_dn=([0-9]+)|^\tlocation=([0-9]+)|^\tculture=([0-9]+)|^\tworkplace=([0-9]+)|^\treligion="([A-z]+)"|^\tliterate=([0-9]+)|^\twealth=([0-9]+)|^\t\}|^\}|^([0-9]+)=none"#).unwrap();
-
-        while let Some(a) = data.next() {
-            // println!("{}", a);
-
-            // println!("entering: {}", a);
-            if let Some(b) = id_reg.captures(&a) {
-                // println!("PANG: {:?}", b);
-                // println!("{:?}", b);
-                if let Some("\t}") = b.get(0).map_or(None, |m| Some(m.as_str())) {
-                    // println!("{}", a);
-                    return Ok(None)
-                }
-                if let Some("}") = b.get(0).map_or(None, |m| Some(m.as_str())) {
-                    return if let ( Some(id),   Some(profession),       Some(religion), Some(culture),  Some(location), Some(workforce),    Some(dependents),   Some(wealth))
-                    =             ( t_id,       t_profession.clone(),   t_religion,     t_culture,      t_location,     t_workforce,        t_dependents,       t_wealth) {
-                        let ret = Self {
-                            id,
-                            profession,
-                            religion,
-                            culture,
-                            location,
-                            workplace,
-                            literacy,
-                            workforce,
-                            dependents,
-                            wealth,
-                            empty: false
-                        };
-                        Ok(Some(ret))
-                    } else {
-                        Err(Box::new(io::Error::new(io::ErrorKind::Other, "Incorrectly Initialized Pop")))
-                    }
-                }
-                if let Some(_) = b.get(11).map_or(None, |m| Some(m.as_str())) {
-                    let mut ret = Self::default();
-                    ret.empty = true;
-                    // println!("{:?}", ret);
-                    return Ok(Some(ret))
-                }
-                if let Some(c) = b.get(1).map_or(None, |m| Some(m.as_str().parse().unwrap())) {
-                    t_id = Some(c);
-                }
-                if let Some(c) = b.get(2).map_or(None, |m| Some(m.as_str().to_owned())) {
-                    t_profession = Some(c);
-                }
-                if let Some(c) = b.get(3).map_or(None, |m| Some(m.as_str().parse().unwrap())) {
-                    t_workforce = Some(c);
-                }
-                if let Some(c) = b.get(4).map_or(None, |m| Some(m.as_str().parse().unwrap())) {
-                    t_dependents = Some(c);
-                }
-                if let Some(c) = b.get(5).map_or(None, |m| Some(m.as_str().parse().unwrap())) {
-                    t_location = Some(c);
-                }
-                if let Some(c) = b.get(6).map_or(None, |m| Some(m.as_str().parse().unwrap())) {
-                    t_culture = Some(c);
-                }
-                if let Some(c) = b.get(7).map_or(None, |m| Some(m.as_str().parse().unwrap())) {
-                    workplace = Some(c);
-                }
-                if let Some(c) = b.get(8).map_or(None, |m| Some(m.as_str().to_owned())) {
-                    t_religion = Some(c);
-                }
-                if let Some(c) = b.get(9).map_or(None, |m| Some(m.as_str().parse().unwrap())) {
-                    literacy = c;
-                }
-                if let Some(c) = b.get(10).map_or(None, |m| Some(m.as_str().parse().unwrap())) {
-                    t_wealth = Some(c);
-                }
-            }
-        }
-        unreachable!()
-    }
-    /// returns error if pop empty
     pub fn location(&self) -> Result<usize, Box<dyn Error>> {
         if self.empty {
             Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Tried accessing location of empty pop:\n{:?}\n", self))))
@@ -119,7 +30,6 @@ impl Pop {
             Ok(self.location)
         }
     }
-    /// panics if pop is empty
     pub fn culture(&self) -> Result<usize, Box<dyn Error>> {
         if self.empty {
             Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Tried accessing culture of empty pop:\n{:?}\n", self))))
@@ -127,62 +37,111 @@ impl Pop {
             Ok(self.culture)
         }
     }
-    /// panics if pop is empty
-    pub fn size(&self) -> Result<usize, Box<dyn Error>> {
+    pub fn religion(&self) -> Result<&str, Box<dyn Error>> {
+        if self.empty {
+            Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Tried accessing culture of empty pop:\n{:?}\n", self))))
+        } else {
+            Ok(&self.religion)
+        }
+    }
+    pub fn workforce(&self) -> Result<usize, Box<dyn Error>> {
         if self.empty {
             Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Tried accessing size of empty pop:\n{:?}\n", self))))
         } else {
-            Ok(self.dependents + self.workforce)
+            Ok(self.workforce)
+        }
+    }
+    pub fn dependents(&self) -> Result<usize, Box<dyn Error>> {
+        if self.empty {
+            Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Tried accessing size of empty pop:\n{:?}\n", self))))
+        } else {
+            Ok(self.dependents)
         }
     }
     pub fn empty(&self) -> bool {
         self.empty
     }
+    pub fn size(&self) -> Result<usize, Box<dyn Error>> {
+        Ok(self.dependents()? + self.workforce()?)
+    }
 }
 
 
-impl GetData for Pop {
-    fn consume_one(mut data: SaveIterator) -> Result<Self, Box<dyn Error>> {
+impl GetMapData for Pop {
+    fn consume_one(inp: DataStructure) -> Result<Self, Box<dyn Error>> {
 
         let mut empty:          bool            = false;
-        // let mut t_id:           Option<usize>   = None;
+        let     id:             usize;
         let mut t_profession:   Option<String>  = None;
         let mut t_religion:     Option<String>  = None;
         let mut t_culture:      Option<usize>   = None;
         let mut t_location:     Option<usize>   = None;
         let mut workplace:      Option<usize>   = None;
-        let mut literacy:       usize           = 0;
+        let mut literates:      usize           = 0;
         let mut t_workforce:    Option<usize>   = None;
         let mut t_dependents:   Option<usize>   = None;
         let mut t_wealth:       Option<usize>   = None;
 
-        while let Some(pile) = data.next() {
-            match pile? {
-                DataStructure::Itr(("type", a))     => t_profession = Some(a.y_str()?.to_owned()),
-                DataStructure::Itr(("size_wa", a))  => t_workforce  = Some(a.y_parse()?),
-                DataStructure::Itr(("size_dn", a))  => t_dependents = Some(a.y_parse()?),
-                DataStructure::Itr(("location", a)) => t_location   = Some(a.y_parse()?),
-                DataStructure::Itr(("religion", a)) => t_religion   = Some(a.y_str()?.to_owned()),
-                DataStructure::Itr(("culture", a))  => t_culture    = Some(a.y_parse()?),
-                DataStructure::Itr(("literate", a)) =>   literacy   =      a.y_parse()?,
-                DataStructure::Itr(("wealth", a))   => t_wealth     = Some(a.y_parse()?),
-                DataStructure::Itr(("workplace", a))=>   workplace  = Some(a.y_parse()?),
+        let [itr_label, content_outer] = inp.itr_info()?;
 
-                DataStructure::Val("none") => empty = true,
+        id = itr_label.parse()?;
 
+        for i in MapIterator::new(content_outer, DataFormat::Labeled) {
+            match i.info() {
+                ["type", content] => {
+                    t_profession    = Some(MapIterator::new(content, DataFormat::Single).get_val()?.to_owned());
+                    if let Some(a) = &mut t_profession {
+                        a.pop();
+                        a.remove(0);
+                    }
+                }
+                ["size_wa", content] => {
+                    t_workforce     = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);
+                }
+                ["size_dn", content] => {
+                    t_dependents    = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);
+                }
+                ["location", content] => {
+                    t_location      = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);
+                }
+                ["literate", content] => {
+                    literates       =      MapIterator::new(content, DataFormat::Single).get_val()?.parse()?;
+                }
+                ["religion", content] => {
+                    t_religion      = Some(MapIterator::new(content, DataFormat::Single).get_val()?.to_owned());
+                    if let Some(a) = &mut t_religion {
+                        a.pop();
+                        a.remove(0);
+                    }
+                }
+                ["wealth", content] => {
+                    t_wealth        = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);
+                }
+                ["culture", content] => {
+                    t_culture       = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);
+                }
+                ["workplace", content] => {
+                    workplace       = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);
+                }
+                ["none"] => {
+                    empty           = true
+                }
+                [_] => unreachable!(),
                 _ => {}
             }
         }
-        if let ( Some(profession),       Some(religion), Some(culture),  Some(location), Some(workforce),    Some(dependents),   Some(wealth))
-         =     ( t_profession.clone(),   t_religion,     t_culture,      t_location,     t_workforce,        t_dependents,       t_wealth) {
+
+
+        if let (Some(profession),       Some(religion), Some(culture),  Some(location), Some(workforce),    Some(dependents),   Some(wealth))
+         =     (t_profession.clone(),   t_religion,     t_culture,      t_location,     t_workforce,        t_dependents,       t_wealth) {
             Ok(Self {
-                id: 0,
+                id,
                 profession,
                 religion,
                 culture,
                 location,
                 workplace,
-                literacy,
+                literates,
                 workforce,
                 dependents,
                 wealth,
@@ -191,6 +150,7 @@ impl GetData for Pop {
         } else if empty {
             let mut ret = Pop::default();
             ret.empty = true;
+            ret.id = id;
             Ok(ret)
         } else {
             Err(Box::new(io::Error::new(io::ErrorKind::Other, "Incorrectly Initialized Pop")))

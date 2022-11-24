@@ -4,21 +4,18 @@ mod pops;
 mod states;
 mod countries;
 mod cultures;
-pub(crate) mod save_scanner;
 
 use pops::Pop;
 use states::State;
 use countries::Country;
 use cultures::Culture;
-use self::save_scanner::DataStructure;
 
-use super::file_analyser;
-use super::map::Map;
-use save_scanner::{GetData, SaveIterator};
+use crate::scanner::{DataStructure, MapIterator, GetMapData, DataFormat};
 
+use std::{io, io::ErrorKind};
+use std::path::{Path, PathBuf};
 use std::error::Error;
 use std::collections::HashMap;
-use std::io;
 
 #[derive(Default)]
 pub struct Save {
@@ -31,92 +28,17 @@ pub struct Save {
 
 impl Save {
 
-    pub fn new(inp: &str) -> Result<Self, Box<dyn Error>> {
+    pub fn new(inp: &Path) -> Result<Vec<Self>, Box<dyn Error>> {
 
-        return Self::consume_one(SaveIterator::new(inp));
+        Self::new_vec(inp.to_path_buf())
 
-        let mut ret = Self::default();
-
-        let (mut save, _) = file_analyser::analyse(inp)?;
-
-        let mut states = HashMap::new();
-        let mut pops = Vec::new();
-        let mut countries = HashMap::new();
-        let mut cultures = HashMap::new();
-
-        while let Some(line) = save.next() {
-
-
-            if line == "states={" {
-                save.next();
-                while let Some(a) = State::new(&mut save)? {
-                    states.insert(a.id(), a);
-                }
-                // states = states::State::new(&mut save)?.into_iter().collect();
-            }
-            if line == "pops={" {
-                save.next();
-                // let mut i = 0;
-                while let Some(a) = Pop::new(&mut save)? {
-                    pops.push(a);
-                }
-                // pops = pops::Pop::new(&mut save)?.into_iter().collect();
-
-            }
-            if line == "country_manager={" {
-                save.next();
-                // let mut i = 0;
-                while let Some(a) = Country::new(&mut save)? {
-                    // println!("{:?}", a);
-                    countries.insert(a.id()?, a);
-                }
-                // pops = pops::Pop::new(&mut save)?.into_iter().collect();
-            }
-            if line == "cultures={" {
-                save.next();
-                // let mut i = 0;
-                while let Some(a) = Culture::new(&mut save)? {
-                    // println!("{:?}", a);
-                    cultures.insert(a.id(), a);
-                }
-                // pops = pops::Pop::new(&mut save)?.into_iter().collect();
-            }
-        }
-
-        for pop in pops.into_iter().filter(|x| !x.empty()) {
-            if let Some(state) = states.get_mut(&pop.location()?) {
-                state.insert_pop(pop);
-            } else {
-                panic!("no home for this little guy :(\n\n{:?}", pop);
-            }
-        }
-
-        ret.states = states;
-        ret.countries = countries;
-        ret.cultures = cultures;
-
-        Ok(ret)
     }
-    pub fn get_tag(&self, index: usize) -> Option<String> {
-
-        for (key, value) in self.states.iter() {
-            if value.contains(&index) {
-                for countries in self.countries.values() {
-                    if let Some(a) = countries.state_id_to_tag(key) {
-                        return Some(a)
-                    }
-                }
-            }
-        }
-        None
-    }
-    pub fn get_state_id(&self, inp: usize) -> Option<usize> {
-        for i in &self.states {
-            if i.1.contains(&inp) {
-                return Some(*i.0);
-            }
-        }
-        None
+    pub fn get_owners(&self, province: usize) -> Option<(&State, &Country)> {
+        self.states.values()
+            .find(|s| s.contains(province))
+        .and_then(|s| self.countries.values()
+            .find(|c| c.contains(s))
+        .map(|c| (s, c)))
     }
     pub fn state_cultures(&self, culture: usize) -> Result<Vec<(usize, usize)>, Box<dyn Error>> {
         let mut ret = vec![(0, 0); self.states.len()];
@@ -129,91 +51,150 @@ impl Save {
         let mut ret = HashMap::new();
         let state_cultures = self.state_cultures(culture)?;
         for (_, country) in &self.countries {
-            ret.insert(country.tag().to_owned(), country.states().iter().map(|&x| state_cultures[x]).fold((0, 0), |a, b| (b.0 + a.0, b.1 + a.1)));
+            ret.insert(country.tag().to_owned(), country.states().map(|&x| state_cultures[x]).fold((0, 0), |a, b| (b.0 + a.0, b.1 + a.1)));
         }
         Ok(ret)
     }
-    pub fn cultures(&self) -> &HashMap<usize, Culture> {
-        &self.cultures
+    pub fn cultures(&self)  -> impl Iterator<Item = &Culture> {
+        self.cultures.values()
     }
-    pub fn area(&self, state: usize, data: &Map) -> Option<usize> {
-        if let Some(a) = self.states.get(&state) {
-            Some(a.area(data))
-        } else {
-            None
-        }
+    pub fn states(&self)    -> impl Iterator<Item = &State> {
+        self.states.values()
+    }
+    pub fn countries(&self) -> impl Iterator<Item = &Country> {
+        self.countries.values()
+    }
+    pub fn get_culture(&self, index: usize) -> Result<&Culture, Box<dyn Error>> {
+        self.cultures.get(&index)
+            .ok_or(Box::new(io::Error::new(ErrorKind::Other, format!("Couldn't find culture with ID {index} in save"))))
+    }
+    pub fn get_state(&self, index: usize) ->  Result<&State, Box<dyn Error>> {
+        self.states.get(&index)
+            .ok_or(Box::new(io::Error::new(ErrorKind::Other, format!("Couldn't find state with ID {index} in save"))))
+    }
+    pub fn get_country(&self, index: usize) ->  Result<&Country, Box<dyn Error>> {
+        self.countries.get(&index)
+            .ok_or(Box::new(io::Error::new(ErrorKind::Other, format!("Couldn't find country with ID {index} in save"))))
     }
 }
 
-impl GetData for Save {
+impl GetMapData for Save {
+    fn new_vec(inp: PathBuf) -> Result<Vec<Self>, Box<dyn Error>> {
+        Self::get_data_from(inp.join("*.v3"))
+    }
 
-    // type Iter = impl Iterator<Item = Save>;
+    fn consume_one(inp: DataStructure) -> Result<Self, Box<dyn Error>> {
 
-    fn consume_one(mut data: SaveIterator) -> Result<Self, Box<dyn Error>> {
-
-        let terr = || -> io::Error { io::Error::new(io::ErrorKind::Other, format!("default error consume save")) };
+        // let terr = || -> io::Error { io::Error::new(io::ErrorKind::Other, format!("default error consume save")) };
 
 
-        let mut t_pops      = None;
-        let mut t_states    = None;
-        let mut t_countries = None;
-        let mut t_cultures  = None;
+        let mut t_pops      : Option<Vec<Pop>> = None;
+        let mut t_states    : Option<HashMap<usize, State>> = None;
+        let mut t_countries : Option<HashMap<usize, Country>> = None;
+        let mut t_cultures  : Option<HashMap<usize, Culture>> = None;
 
-        while let Some(tag) = data.next() {
-            match tag? {
-                DataStructure::Itr(("pops", value)) => {
-                    let mut aop: Vec<Pop> = Vec::new();
-                    let database = value.into_iter().find(|x| x.as_ref().is_ok_and(|v| v.name("database"))).ok_or(Box::new(terr()))??;
-                    for datastructure in database {
-                        aop.push(Pop::consume_one(datastructure?.into_iter())?);
-                    }
-                    for i in &aop {
-                        println!("{:?}", i);
-                    }
-                    t_pops = Some(aop)
+
+        let content_outer = inp.itr_info()?[1];
+
+        for i in MapIterator::new(content_outer, DataFormat::Labeled) {
+            match i.info() {
+                ["pops", content] => {
+                    // println!("!!! pops");
+                    t_pops = Some(Pop::consume_vec(MapIterator::new(content, DataFormat::Labeled), Some("database"))?)
                 }
-                DataStructure::Itr(("states", value)) => {
-                    let mut asa = HashMap::new();
-                    for datastructure in value.into_iter().find(|x| x.as_ref().is_ok_and(|v| v.name("database"))).ok_or(Box::new(terr()))?? {
-                        for stat in datastructure?.into_iter().map(|x| State::consume_one(x?.into_iter())).map(|u| u.map(|o| (o.id(), o))) {
-                            let (id, state) = stat?;
-                            asa.insert(id, state);
-                        }
-                    }
-                    t_states = Some(asa)
+                ["states", content] => {
+                    // println!("!!! states");
+                    t_states = Some(State::consume_vec(MapIterator::new(content, DataFormat::Labeled), Some("database"))?.into_iter().map(|x| (x.id(), x)).collect())
                 }
-                DataStructure::Itr(("country_manager", value)) => {
-                    let mut coun = HashMap::new();
-                    for datastructure in value.into_iter().find(|x| x.as_ref().is_ok_and(|v| v.name("database"))).ok_or(Box::new(terr()))?? {
-                        for stat in datastructure?.into_iter().map(|x| Country::consume_one(x?.into_iter())).map(|u| u.map(|o| (o.id(), o))) {
-                            let (id, state) = stat?;
-                            coun.insert(id?, state);
-                        }
-                    }
-                    t_countries = Some(coun)
+                ["country_manager", content] => {
+                    // println!("!!! country_manager");
+                    t_countries = Some(Country::consume_vec(MapIterator::new(content, DataFormat::Labeled), Some("database"))?.into_iter().map(|x| (x.id(), x)).collect())
                 }
-                DataStructure::Itr(("cultures", value)) => {
-                    let mut cult = HashMap::new();
-                    for datastructure in value.into_iter().find(|x| x.as_ref().is_ok_and(|v| v.name("database"))).ok_or(Box::new(terr()))?? {
-                        for stat in datastructure?.into_iter().map(|x| Culture::consume_one(x?.into_iter())).map(|u| u.map(|o| (o.id(), o))) {
-                            let (id, state) = stat?;
-                            cult.insert(id, state);
-                        }
-                    }
-                    t_cultures = Some(cult)
+                ["cultures", content] => {
+                    // println!("!!! cultures");
+                    t_cultures = Some(Culture::consume_vec(MapIterator::new(content, DataFormat::Labeled), Some("database"))?.into_iter().map(|x| (x.id(), x)).collect())
                 }
-                DataStructure::Itr((a, _)) => {
-                    println!("{}", a);
+                [_a, _b] => {
+                    // println!("{_a:?}")
                 }
-                DataStructure::Val(a) => {
-                    println!("{}", a);
+                _a => {
+                    // println!("{_a:?}")
                 }
             }
         }
 
-        unimplemented!()
+        if let (Some(pops), Some(countries), Some(cultures), Some(mut states))
+        =      (t_pops,     t_countries,     t_cultures,     t_states) {
+            for pop in pops.into_iter().filter(|x| !x.empty()) {
+                if let Some(state) = states.get_mut(&pop.location()?) {
+                    state.insert_pop(pop);
+                } else {
+                    panic!("no home for this little guy :(\n\n{:?}", pop);
+                }
+            }
+            Ok(Self {
+                countries,
+                cultures,
+                states,
+            })
+        } else {
+            unimplemented!()
+        }
     }
-    // fn consume_vec(_: SaveIterator) -> Result<Self::Iter, Box<dyn Error>> where Self: Sized {
-    //     unimplemented!()
-    // }
+    fn get_data_from(inp: PathBuf) -> Result<Vec<Self>, Box<dyn Error>> {
+
+        let mut ret = Vec::new();
+
+        println!("{:?}", inp);
+        println!("wanna skip anything?");
+        let skip = crate::testing::wait();
+
+        for entry in glob::glob(&inp.as_path().to_str().unwrap())? {
+
+            let entry = entry?;
+
+            if skip {
+                println!("{:?}", entry);
+                if !crate::testing::wait() {
+                    continue;
+                }
+            } else if entry.file_name() != Some(std::ffi::OsStr::new("great britain_1836_01_01.v3")) {
+                continue;
+            }
+            println!("{:?}", entry.file_name());
+
+            let mut writer: Vec<u8> = vec![];
+
+            match zip::ZipArchive::new(std::fs::File::open(entry.clone())?) {
+                Ok(mut zipper) => {
+                    let mut file = zipper.by_name("gamestate")?;
+                    std::io::copy(&mut file, &mut writer)?;
+                }
+                Err(zip::result::ZipError::InvalidArchive(_)) => {
+                    writer = std::fs::read(entry)?;
+                }
+                Err(e) => return Err(Box::new(e)),
+            }
+
+
+            let mut comment = false;
+            let mut para = false;
+            let closure = move |&c: &char | -> bool {
+                if c == '"' {
+                    para ^= para
+                } else if c == '#' && !para {
+                    comment = true
+                } else if c == '\n' && comment {
+                    comment = false
+                }
+                !comment
+            };
+
+            let data = &std::str::from_utf8(&writer)?.chars().filter(closure).collect::<String>();
+
+
+            ret.push(Self::consume_one(DataStructure::new(data))?)
+        }
+        Ok(ret)
+    }
 }

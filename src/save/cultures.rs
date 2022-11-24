@@ -1,9 +1,7 @@
 
-
-use regex::Regex;
 use std::error::Error;
 
-use super::save_scanner::{GetData, SaveIterator, DataStructure};
+use crate::scanner::{GetMapData, DataStructure, MapIterator, DataFormat};
 
 
 #[derive(Debug, Default)]
@@ -16,53 +14,49 @@ pub struct Culture {
 
 
 impl Culture {
-    pub fn new(data: &mut impl Iterator<Item = String>) -> Result<Option<Self>, Box<dyn Error>> {
-
-
-        let mut t_id        = None;
-        let mut t_name      = None;
-        let mut t_homelands = None;
-
-        let id_reg = Regex::new(r#"^([0-9]+)=\{|type=([a-z_]+)|core_states=\{([A-Z_a-z\s]+)\}|^\}"#).unwrap();
-
-
-        // println!("entering: {}", a);
-        while let Some(a) = data.next() {
-            for b in id_reg.captures_iter(&a) {
-                if let Some("}") = b.get(0).map_or(None, |m| Some(m.as_str())) {
-                    return if let (Some(id), Some(name), Some(homelands)) = (t_id, t_name, t_homelands) {
-                        Ok(Some(Self { id, name, homelands }))
-                    } else {
-                        Ok(None)
-                    }
-                }
-                if let Some(c) = b.get(1).map_or(None, |m| Some(m.as_str())) {
-                    t_id = Some(c.parse()?);
-                }
-                if let Some(c) = b.get(2).map_or(None, |m| Some(m.as_str())) {
-                    t_name = Some(c.to_owned());
-                }
-                if let Some(c) = b.get(3).map_or(None, |m| Some(m.as_str())) {
-                    t_homelands = Some(c.split(' ').map(|x| x.to_owned()).filter(|x| !x.is_empty()).collect());
-                }
-            }
-        }
-        unreachable!()
-    }
     pub fn id(&self) -> usize {
         self.id
     }
     pub fn name(&self) -> &String {
         &self.name
     }
-    pub fn homelands(&self) -> &Vec<String> {
-        &self.homelands
+    pub fn homelands(&self) -> impl Iterator<Item = &String> {
+        self.homelands.iter()
     }
 }
 
 
-impl GetData for Culture {
-    fn consume_one(_: SaveIterator) -> Result<Self, Box<dyn Error>> {
-        Ok(Self::default())
+impl GetMapData for Culture {
+    fn consume_one(inp: DataStructure) -> Result<Self, Box<dyn Error>> {
+
+        let mut t_name = None;
+        let mut homelands = Vec::new();
+        let id;
+
+        let [itr_label, content_outer] = inp.itr_info()?;
+
+        id = itr_label.parse()?;
+
+        for i in MapIterator::new(content_outer, DataFormat::Labeled) {
+            match i.info() {
+                ["type", content] => {
+                    t_name           = Some(MapIterator::new(content, DataFormat::Single).get_val()?.to_owned());
+                }
+                ["core_states", content] => {
+                    homelands        = MapIterator::new(content, DataFormat::MultiVal).get_vec()?.into_iter().map(|x| x.to_owned()).collect();
+                }
+                [_] => unreachable!(),
+                _ => {}
+            }
+        }
+        if let Some(name) = t_name {
+            Ok(Self {
+                id,
+                name,
+                homelands
+            })
+        } else {
+            panic!()
+        }
     }
 }

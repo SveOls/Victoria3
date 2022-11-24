@@ -1,170 +1,187 @@
 
 
 // use itertools::Itertools;
-use regex::Regex;
+
 use image::Rgb;
 
-use std::error::Error;
+use std::{error::Error, path::Path};
 use std::collections::HashMap;
 
 mod strategic;
+mod countries;
+mod professions;
+mod water;
+mod traits;
+mod laws;
+mod named_colors;
+pub mod cultures;
+pub mod religions;
+pub mod statetemplates;
 
 // use statetemplates::StateTemplate;
-use strategic::{StrategicRegion, statetemplates::StateTemplate};
-use super::file_analyser;
+use strategic::StrategicRegion;
+use statetemplates::StateTemplate;
+use countries::Country;
+use water::Water;
+use traits::Trait;
+use named_colors::NamedColor;
+use religions::Religion;
+use professions::Profession;
+use cultures::Culture;
+use laws::{Law, LawGroup};
+
+use crate::wrappers::RgbWrap;
+
+
+// #[derive(Debug)]
+// pub enum ScanReligion<'a> {
+//     Refs(&'a Religion),
+//     Name(String)
+// }
+
+// #[derive(Debug)]
+// pub enum ScanCulture<'a> {
+//     Refs(&'a Culture<'a>),
+//     Name(String)
+// }
+
+// #[derive(Debug)]
+// pub enum ScanStates<'a> {
+//     Refs(&'a StateTemplate),
+//     Name(String)
+// }
+
+
 
 #[derive(Debug, Default)]
 pub struct Map {
+    regions:        Vec<StrategicRegion>,
+    states:         Vec<StateTemplate>,
+    countries:      Vec<Country>,
+    religions:      Vec<Religion>,
+    cultures:       Vec<Culture>,
+    professions:    Vec<Profession>,
+    water:          Vec<Water>,
+    named_colors:   Vec<NamedColor>,
+    laws:           Vec<Law>,
+    lawgroups:      Vec<LawGroup>,
+    traits:         Vec<Trait>,
     index_color:    Vec<(Rgb<u8>, usize)>,
     provinces:      HashMap<Rgb<u8>, usize>,
-    regions:        Vec<StrategicRegion>,
-    countries:      HashMap<String, Rgb<u8>>,
-    unorganized:    Vec<Rgb<u8>>,
 }
 
 
 impl Map {
-    pub fn new() -> Result<Self, Box<dyn Error>> {
+    pub fn new(inp: &Path) -> Result<Self, Box<dyn Error>> {
 
-        let mut ret = Self::default();
+        let cultures        = Culture::         new(inp.to_path_buf())?;
+        let religions       = Religion::        new(inp.to_path_buf())?;
+        let mut regions     = StrategicRegion:: new(inp.to_path_buf())?;
+        let mut states      = StateTemplate::   new(inp.to_path_buf())?;
+        let water           = Water::           new(inp.to_path_buf())?;
+        let countries       = Country::         new(inp.to_path_buf())?;
+        let named_colors    = NamedColor::      new(inp.to_path_buf())?;
+        let lawgroups       = LawGroup::        new(inp.to_path_buf())?;
+        let laws            = Law::             new(inp.to_path_buf())?;
+        let professions     = Profession::      new(inp.to_path_buf())?;
+        let traits          = Trait::           new(inp.to_path_buf())?;
 
-        let mut strategic_regions = Vec::new();
-        let mut state_templates = Vec::new();
+        for (id, state) in states.iter_mut().enumerate() {
+            state.set_id(id);
+        }
+        for (id, region) in regions.iter_mut().enumerate() {
+            region.set_id(id);
+        }
 
-        for entry in file_analyser::get_glob("game/map_data/state_regions", "txt")? {
-
-            // break;
-
-            let (mut fileiter, name) = file_analyser::get_file(entry?.to_str().unwrap(), false)?;
-
-
-            while let Some(mut a) = StateTemplate::new(&mut fileiter, name == "99_seas.txt")? {
-
-                a.set_id(state_templates.len());
-
-                state_templates.push(Some(a));
+        'outer: for state in &mut states {
+            if let Some(provov) = state.provinces() {
+                for province in provov {
+                    for i in &water {
+                        if i.has(*province) {
+                            state.set_ocean(true);
+                            continue 'outer;
+                        }
+                    }
+                }
             }
         }
 
         let mut offset = 1;
-        for entry in file_analyser::get_glob("game/common/strategic_regions", "txt")? {
-
-            // break;
-
-            let (mut fileiter, name) = file_analyser::get_file(entry?.to_str().unwrap(), false)?;
-
-
-            // this is a bit of a mess. A vector of states is passed in so they can be assigned to the new strategic regions as they're created.
-            // in addition, "offset" is the ID of the first province in the new strategic region.
-            while let Some(mut a) = StrategicRegion::new(&mut fileiter, &mut state_templates, offset, name == "water_strategic_regions.txt")? {
-                a.set_id(strategic_regions.len());
-                offset += a.size();
-                strategic_regions.push(a);
-            }
-        }
-
-        let mut countries = HashMap::new();
-        let id_reg = Regex::new(r#"^([A-Z]{3}) = \{|^\tcolor = ([a-z\{\} .0-9]+)"#)?;
-
-        for entry in file_analyser::get_glob("game/common/country_definitions", "txt")? {
-
-            // break;
-
-            let (mut data, _) = file_analyser::get_file(entry?.to_str().unwrap(), false)?;
-
-            let mut tag = String::new();
-
-            while let Some(a) = data.next() {
-                for b in id_reg.captures_iter(&a) {
-                    if let Some(c) = b.get(1).map_or(None, |m| Some(m.as_str())) {
-                        tag = c.to_owned();
-                    }
-                    if let Some(c) = b.get(2).map_or(None, |m| Some(m.as_str())) {
-                        if tag.chars().count() != 3 {
-                            panic!();
-                        }
-                        countries.insert(tag, file_analyser::to_rgb(c)?);
-                        tag = String::new();
-                    }
+        for region in &mut regions {
+            region.set_offset(offset);
+            for state in &mut states {
+                if region.states().contains(state.name()) {
+                    state.set_offset(offset);
+                    offset += state.size();
                 }
             }
         }
-        // println!("{:?}", countries);
 
-        // let (mut data, _) = analyse::get_file("game/map_data/default.map", true)?;
+        let img = crate::wrappers::ImageWrap::new(inp.to_path_buf(), None)?;
 
-        // let id_reg = Regex::new(r#"x([0-9A-Fa-f]{6})"#)?;
+        let mut index_color: Vec<(Option<Rgb<u8>>, usize)> = vec![(None, 0); states.iter().map(|x| x.size()).sum::<usize>() + 1];
 
-        // let mut lakes = Vec::new();
-
-        // while let Some(a) = data.next() {
-        //     for b in id_reg.captures_iter(&a) {
-        //         if let Some(c) = b.get(1).map_or(None, |m| Some(m.as_str())) {
-        //             lakes.push(Rgb::from([u8::from_str_radix(&c[0..2], 16).unwrap(), u8::from_str_radix(&c[2..4], 16).unwrap(), u8::from_str_radix(&c[4..6], 16).unwrap()]));
-        //         }
-        //     }
-        // }
-
-
-
-        // flipv so iterating through goes left-right, down-up, as opposed to left-right, up-down. That way, assigning province index and ID can be done iteratively,
-        // as provinces in each state are enumerated based on whick is encountered first when scanning through the image, pixel by pixel, in this way.
-        let img = file_analyser::get_provinces(true, None)?;
-
-
-        let mut provinces: Vec<(Option<Rgb<u8>>, usize)> = vec![(None, 0); strategic_regions.iter().map(|x| x.size()).sum::<usize>() + 1];
-
-        let mut colors = HashMap::new();
+        let mut provinces = HashMap::new();
 
         let mut unorganized = Vec::new();
 
+        for &img_pixel in img.vflip_pixels() {
 
-        for (_, &img_pixel) in img.pixels().enumerate() {
+            if let Some(&val) = provinces.get(&img_pixel) {
+                index_color[val as usize].1 += 1;
+            } else {
+                let mut change = false;
+                'outer: for state in &states {
+                    if state.contains(img_pixel) {
+                        if let Some(pixel_offset) = state.get_offset() {
 
-            if let Some(&val) = colors.get(&img_pixel) {
-                // println!("{:?}", provinces[val]);
-                provinces[val as usize].1 += 1;
-                continue;
-            }
+                            change = true;
 
-            let mut change = false;
-            'outer: for region in &strategic_regions {
-                if let Some((offset, statesize)) = region.get_number(img_pixel)? {
-                    change = true;
+                            for i in pixel_offset..pixel_offset+state.size() {
+                                if index_color[i].0.is_none() {
 
-                    for i in offset..offset+statesize {
-                        if provinces[i].0.is_none() {
+                                    index_color[i].0 = Some(img_pixel);
+                                    index_color[i].1 += 1;
+                                    provinces.insert(img_pixel, i);
 
-                            provinces[i].0 = Some(img_pixel);
-                            provinces[i].1 += 1;
-                            colors.insert(img_pixel, i);
-
-                            break 'outer;
+                                    break 'outer;
+                                }
+                            }
+                            unreachable!();
                         }
                     }
-                    unreachable!();
+                }
+                if !change {
+                    index_color.push((Some(img_pixel), 1));
+                    provinces.insert(img_pixel, index_color.len() - 1);
+                    unorganized.push(img_pixel);
                 }
             }
-            if !change {
-                provinces.push((Some(img_pixel), 1));
-                colors.insert(img_pixel, provinces.len() - 1);
-                unorganized.push(img_pixel);
-            }
         }
-
-        provinces[0] = (Some(Rgb::from([0; 3])), 0);
-        ret.index_color = provinces.iter().map(|&x| (x.0.unwrap(), x.1)).map(|x| (Rgb::from(x.0), x.1)).collect();
-        ret.provinces = colors;
-        ret.unorganized = unorganized;
-        ret.countries = countries;
-        ret.regions = strategic_regions;
-
-        Ok(ret)
+        index_color[0] = (Some(Rgb::from([0; 3])), 0);
+        Ok(Self {
+            cultures,
+            countries,
+            religions,
+            regions,
+            traits,
+            lawgroups,
+            named_colors,
+            laws,
+            professions,
+            states,
+            provinces,
+            water,
+            index_color: index_color.iter().map(|&x| (x.0.unwrap(), x.1)).map(|x| (Rgb::from(x.0), x.1)).collect()
+        })
     }
+
     pub fn get_strat_color(&self, prov: Rgb<u8>) -> Option<Rgb<u8>> {
-        for region in &self.regions {
-            if let Some(color) = region.get_color(prov, None) {
-                return Some(color)
+        for state in &self.states {
+            if state.contains(prov) {
+                return self.regions.iter()
+                    .filter(|x| x.states().iter().find(|&z| z == state.name()).is_some())
+                    .find_map(|y| y.color().map(|f| f.unravel()));
             }
         }
         None
@@ -175,57 +192,15 @@ impl Map {
     /// Returns "UNORGANIZED" if province is known (located on province map), but was not found in a state template.
     ///
     /// Returns None if it wasn't found in provinces.png nor in any state template.
-    pub fn get_state_name(&self, color: Rgb<u8>) -> Option<&str> {
-        // self.regions.iter()  -> iterate over each region
-        // .map(|x| f(x))       -> gets Option<StateTemplate> of each state in region and turns them into Option<&str>.
-        // .chain(....)         -> chains "UNORGANIZED" to the end of the iterator if "self.unorganized" contains "color".
-        // .filter_man(....)    -> Options are unpacked and Nones are ignored
-        // .next()              -> first &str in iterator is returned.
-        //
-        let ret = self.regions.iter()
-            .map(
-                |region| region.get_state(color).and_then(|x| Some(x.name()))
-            ).chain(
-                [Some("UNORGANIZED")].into_iter().filter(|_| self.unorganized.contains(&color))
-            ).filter_map(|name| name).next();
-
-        /*
-        let mut ret2 = None;
-        for region in &self.regions {
-            if let Some(state) = region.get_state(color) {
-                ret2 = Some(state.name())
-            }
-        }
-        if self.unorganized.contains(color) {
-            ret2 = Some("UNORGANIZED");
-        }
-        if ret != ret2 {
-            panic!();
-        }
-        */
-
-
-        /*
-        match self.regions.iter().filter_map(|region| region.get_state(color)).next() {
-            Some(state) => {
-                Some(state.name())
-            }
-            None if self.unorganized.contains(color) => {
-                Some("UNORGANIZED")
-            }
-            None => None
-        }
-        // not country. this means Color province is not assigned to a state.
-        */
-
-        ret
+    pub fn get_state_name(&self, color: Rgb<u8>) -> Option<&String> {
+        self.states.iter().find(|x| x.contains(color)).map(|x| x.name())
     }
     ///
     pub fn to_index(&self, inp: Rgb<u8>) -> Option<usize> {
         self.provinces.get(&inp).cloned()
     }
     pub fn get_country_color(&self, tag: &str) -> Option<Rgb<u8>> {
-        self.countries.get(tag).cloned()
+        self.countries.iter().find(|&x| x.name() == tag).map(|y| y.color().unravel())
     }
     pub fn area(&self, provs: &Vec<usize>) -> usize {
         provs.iter().map(|&x| self.index_color[x].1).sum()
@@ -236,11 +211,14 @@ impl Map {
     pub fn regions(&self) -> &Vec<StrategicRegion> {
         &self.regions
     }
-    pub fn get_state(&self, id_1: usize) -> Option<&StateTemplate> {
-        self.regions.iter().filter_map(|x| x.get_state(self.index_color[id_1].0)).next()
+    pub fn col_index_to_state(&self, id_1: usize) -> Option<&StateTemplate> {
+        let color = self.index_color[id_1].0;
+        self.states.iter().find(|state| state.contains(color))
+    }
+    pub fn state_area(&self) -> impl Iterator<Item = (&StateTemplate, usize)> {//-> impl Iterator<Item = (StateTemplate, usize)> {
+        self.states.iter().map(|x| (x, self.index_color.iter().filter(|y| x.contains(y.0)).fold(0, |a, b| a + b.1)))
+    }
+    pub fn job_color(&self, name: &str) -> Option<RgbWrap> {
+        self.professions.iter().find(|x| x.name() == name).map(|p| p.color())
     }
 }
-
-
-
-
