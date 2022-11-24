@@ -1,7 +1,7 @@
 
 
-use std::error::Error;
 use std::path::PathBuf;
+use crate::error::VicError;
 use crate::scanner::{GetMapData, DataStructure, MapIterator, DataFormat};
 
 use crate::wrappers::RgbWrap;
@@ -17,7 +17,7 @@ pub struct Religion {
 
 
 impl Religion {
-    pub fn new(inp: PathBuf) -> Result<Vec<Self>, Box<dyn Error>> {
+    pub fn new(inp: PathBuf) -> Result<Vec<Self>, VicError> {
         Self::new_vec(inp)
     }
     pub fn name(&self) -> &str {
@@ -27,10 +27,10 @@ impl Religion {
 
 
 impl GetMapData for Religion {
-    fn new_vec(inp: PathBuf) -> Result<Vec<Self>, Box<dyn Error>> {
+    fn new_vec(inp: PathBuf) -> Result<Vec<Self>, VicError> {
         Self::get_data_from(inp.join("game/common/religions/*.txt"))
     }
-    fn consume_one(inp:   DataStructure) -> Result<Self, Box<dyn Error>> {
+    fn consume_one(inp:   DataStructure) -> Result<Self, VicError> {
 
         let mut t_traits = None;
         let mut t_color = None;

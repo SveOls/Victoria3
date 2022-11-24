@@ -1,7 +1,7 @@
 
 use image::Rgb;
 use std::path::PathBuf;
-use std::error::Error;
+use crate::error::VicError;
 use crate::scanner::{MapIterator, DataFormat, GetMapData, DataStructure};
 
 use crate::wrappers::RgbWrap;
@@ -13,7 +13,7 @@ pub struct Water {
 }
 
 impl Water {
-    pub fn new(inp: PathBuf) -> Result<Vec<Self>, Box<dyn Error>> {
+    pub fn new(inp: PathBuf) -> Result<Vec<Self>, VicError> {
         Self::new_vec(inp)
     }
     pub fn has(&self, inp: Rgb<u8>) -> bool {
@@ -22,13 +22,13 @@ impl Water {
 }
 
 impl GetMapData for Water {
-    fn new_vec(inp: PathBuf) -> Result<Vec<Self>, Box<dyn Error>> {
+    fn new_vec(inp: PathBuf) -> Result<Vec<Self>, VicError> {
         Self::get_data_from(inp.join("game/map_data/*.map"))
     }
-    fn consume_one(_:   DataStructure) -> Result<Self, Box<dyn Error>> {
+    fn consume_one(_:   DataStructure) -> Result<Self, VicError> {
         unreachable!()
     }
-    fn consume_vec(inp:   MapIterator, _: Option<&str>) -> Result<Vec<Self>, Box<dyn Error>> {
+    fn consume_vec(inp:   MapIterator, _: Option<&str>) -> Result<Vec<Self>, VicError> {
 
         let mut t_lakes = None;
         let mut t_sea = None;

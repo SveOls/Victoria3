@@ -1,9 +1,9 @@
 
 
 
-use std::{error::Error, io};
+use std::io;
 
-use crate::scanner::{GetMapData, DataStructure, MapIterator, DataFormat};
+use crate::{scanner::{GetMapData, DataStructure, MapIterator, DataFormat}, error::VicError};
 
 #[allow(dead_code)]
 #[derive(Debug, Default, Clone)]
@@ -23,37 +23,37 @@ pub struct Pop {
 
 
 impl Pop {
-    pub fn location(&self) -> Result<usize, Box<dyn Error>> {
+    pub fn location(&self) -> Result<usize, VicError> {
         if self.empty {
-            Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Tried accessing location of empty pop:\n{:?}\n", self))))
+            Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, format!("Tried accessing location of empty pop:\n{:?}\n", self)))))
         } else {
             Ok(self.location)
         }
     }
-    pub fn culture(&self) -> Result<usize, Box<dyn Error>> {
+    pub fn culture(&self) -> Result<usize, VicError> {
         if self.empty {
-            Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Tried accessing culture of empty pop:\n{:?}\n", self))))
+            Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, format!("Tried accessing culture of empty pop:\n{:?}\n", self)))))
         } else {
             Ok(self.culture)
         }
     }
-    pub fn religion(&self) -> Result<&str, Box<dyn Error>> {
+    pub fn religion(&self) -> Result<&str, VicError> {
         if self.empty {
-            Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Tried accessing culture of empty pop:\n{:?}\n", self))))
+            Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, format!("Tried accessing culture of empty pop:\n{:?}\n", self)))))
         } else {
             Ok(&self.religion)
         }
     }
-    pub fn workforce(&self) -> Result<usize, Box<dyn Error>> {
+    pub fn workforce(&self) -> Result<usize, VicError> {
         if self.empty {
-            Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Tried accessing size of empty pop:\n{:?}\n", self))))
+            Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, format!("Tried accessing size of empty pop:\n{:?}\n", self)))))
         } else {
             Ok(self.workforce)
         }
     }
-    pub fn dependents(&self) -> Result<usize, Box<dyn Error>> {
+    pub fn dependents(&self) -> Result<usize, VicError> {
         if self.empty {
-            Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Tried accessing size of empty pop:\n{:?}\n", self))))
+            Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, format!("Tried accessing size of empty pop:\n{:?}\n", self)))))
         } else {
             Ok(self.dependents)
         }
@@ -61,14 +61,14 @@ impl Pop {
     pub fn empty(&self) -> bool {
         self.empty
     }
-    pub fn size(&self) -> Result<usize, Box<dyn Error>> {
+    pub fn size(&self) -> Result<usize, VicError> {
         Ok(self.dependents()? + self.workforce()?)
     }
 }
 
 
 impl GetMapData for Pop {
-    fn consume_one(inp: DataStructure) -> Result<Self, Box<dyn Error>> {
+    fn consume_one(inp: DataStructure) -> Result<Self, VicError> {
 
         let mut empty:          bool            = false;
         let     id:             usize;
@@ -153,7 +153,7 @@ impl GetMapData for Pop {
             ret.id = id;
             Ok(ret)
         } else {
-            Err(Box::new(io::Error::new(io::ErrorKind::Other, "Incorrectly Initialized Pop")))
+            Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, "Incorrectly Initialized Pop"))))
         }
 
     }

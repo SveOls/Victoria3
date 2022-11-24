@@ -4,9 +4,10 @@ use super::map;
 use super::utilities;
 use super::save::Save;
 
-use std::error::Error;
+
 use std::collections::{HashMap, HashSet};
 
+use crate::error::VicError;
 use crate::wrappers::{ImageWrap, RgbWrap};
 
 use image::Rgb;
@@ -33,7 +34,7 @@ impl DrawMap {
     /// unassigned_color: if function can't find a color OR the province is a lake or ocean, this is used.
     ///
     /// versions: province map, line map, recolored, recolored with lines. Will always generate a map, even if all false, just not save it.
-    pub fn draw(self, versions: &[bool; 4], inp: &map::Map, data: Option<(HashMap<usize, f64>, Option<Rgb<u8>>)>, resize: Option<f64>, progress_frequency: Option<u32>, sav: Option<&Save>, unassigned_color: Option<Rgb<u8>>) -> Result<(), Box<dyn Error>> {
+    pub fn draw(self, versions: &[bool; 4], inp: &map::Map, data: Option<(HashMap<usize, f64>, Option<Rgb<u8>>)>, resize: Option<f64>, progress_frequency: Option<u32>, sav: Option<&Save>, unassigned_color: Option<Rgb<u8>>) -> Result<(), VicError> {
 
         let mut savedcolors: HashMap<Rgb<u8>, Rgb<u8>> = HashMap::new();
         let mut statecol: HashMap<String, Rgb<u8>> = HashMap::new();
@@ -59,8 +60,8 @@ impl DrawMap {
         }
         // panic!("{datacol:?} {exfac}");
 
-        let errorthrow = |color: Rgb<u8>, i: u32, width: u32| -> Box<dyn Error> {
-            Box::new(std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}: failed at color: {:X}{:X}{:X} and coordinate: {}x, {}y", self, color[0], color[1], color[2], i%width, i/width)))
+        let errorthrow = |color: Rgb<u8>, i: u32, width: u32| -> VicError {
+            VicError::Other(Box::new(std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}: failed at color: {:X}{:X}{:X} and coordinate: {}x, {}y", self, color[0], color[1], color[2], i%width, i/width))))
         };
 
         for (i,  color) in new_map.pixels_mut().enumerate().map(|x| (x.0 as u32, x.1)) {

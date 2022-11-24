@@ -24,14 +24,17 @@ use draw::DrawMap;
 
 fn main() -> Result<(), VicError> {
 
-    app::run();
+
+
+    app::run()?;
 
     panic!();
 
     let mut savelocation = PathBuf::new();
-    savelocation.push("/mnt/c/Users/sverr/Documents/Paradox Interactive/Victoria 3/save games/");
+    savelocation.push("/mnt/c/Users/sverr/Documents/Paradox Interactive/Victoria 3/");
     let mut gamelocation = PathBuf::new();
     gamelocation.push("/mnt/c/Steam/steamapps/common/Victoria 3/");
+
 
     println!("game analysis");
 
@@ -42,8 +45,7 @@ fn main() -> Result<(), VicError> {
     println!("save analysis");
     // use std::time::{Duration, Instant};
     // let start = Instant::now();
-    let mut stuffvec = save::Save::new(&savelocation)?;
-    let stuff = stuffvec.remove(0);
+    let  stuff = save::Save::new(&savelocation)?;
     // let duration = start.elapsed();
     // println!("Time elapsed in expensive_function() is: {:?}", duration);
 

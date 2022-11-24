@@ -1,12 +1,13 @@
 
-use std::error::Error;
 use std::io;
 use std::path::PathBuf;
 
 use glob::glob;
 
+use crate::error::VicError;
+
 pub trait GetMapData: Sized {
-    fn get_data_from(inp: PathBuf) -> Result<Vec<Self>, Box<dyn Error>> {
+    fn get_data_from(inp: PathBuf) -> Result<Vec<Self>, VicError> {
 
         let mut ret = Vec::new();
 
@@ -35,19 +36,19 @@ pub trait GetMapData: Sized {
         }
         Ok(ret)
     }
-    fn new_vec(_: PathBuf) -> Result<Vec<Self>, Box<dyn Error>> { unimplemented!() }
-    fn consume_vec(inp: MapIterator, database: Option<&str>) -> Result<Vec<Self>, Box<dyn Error>> {
+    fn new_vec(_: PathBuf) -> Result<Vec<Self>, VicError> { unimplemented!() }
+    fn consume_vec(inp: MapIterator, database: Option<&str>) -> Result<Vec<Self>, VicError> {
         if let Some(a) = database {
             if let Some(DataStructure::Itr([_, a])) = inp.into_iter().find(|x| x.name(a)) {
                 MapIterator::new(a, DataFormat::Labeled).into_iter().map(|x| Self::consume_one(x)).collect()
             } else {
-                Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Unimplemented error"))))
+                Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, format!("Unimplemented error")))))
             }
         } else {
             inp.into_iter().map(|x| Self::consume_one(x)).collect()
         }
     }
-    fn consume_one(_:   DataStructure) -> Result<Self, Box<dyn Error>> { unimplemented!() }
+    fn consume_one(_:   DataStructure) -> Result<Self, VicError> { unimplemented!() }
 }
 
 
@@ -157,10 +158,10 @@ impl<'a> MapIterator<'a> {
             version: format
         }
     }
-    pub fn get_vec(self) -> Result<Vec<&'a str>, Box<dyn Error>> {
+    pub fn get_vec(self) -> Result<Vec<&'a str>, VicError> {
         self.into_iter().map(|x| x.val_info()).collect()
     }
-    pub fn get_val(mut self) -> Result<&'a str, Box<dyn Error>> {
+    pub fn get_val(mut self) -> Result<&'a str, VicError> {
         self.next().unwrap().val_info()
     }
 }
@@ -272,20 +273,20 @@ impl<'a> DataStructure<'a> {
             DataStructure::Val(a) => std::array::from_ref(a)
         }
     }
-    pub fn itr_info(self) -> Result<[&'a str; 2], Box<dyn Error>> {
+    pub fn itr_info(self) -> Result<[&'a str; 2], VicError> {
         match self {
             DataStructure::Itr(a) => Ok(a),
-            _ => Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Unimplemented error in map_scanner::get_val: >{self:?}<"))))
+            _ => Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, format!("Unimplemented error in map_scanner::get_val: >{self:?}<")))))
         }
     }
     pub fn new(inp: &'a str) -> Self {
         DataStructure::Itr(["", inp])
     }
-    pub fn val_info(self) -> Result<&'a str, Box<dyn Error>> {
+    pub fn val_info(self) -> Result<&'a str, VicError> {
         match self {
             DataStructure::Val(a) => Ok(a),
             DataStructure::Itr([a, _]) => {
-                Err(Box::new(io::Error::new(io::ErrorKind::Other, format!("Unimplemented error in map_scanner::get_val: >{a:?}<"))))
+                Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, format!("Unimplemented error in map_scanner::get_val: >{a:?}<")))))
             }
         }
     }

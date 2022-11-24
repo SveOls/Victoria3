@@ -1,8 +1,6 @@
 
 
-use std::error::Error;
-
-use crate::scanner::{GetMapData, MapIterator, DataFormat, DataStructure};
+use crate::{scanner::{GetMapData, MapIterator, DataFormat, DataStructure}, error::VicError};
 
 use super::State;
 
@@ -59,7 +57,7 @@ impl Country {
 
 
 impl GetMapData for Country {
-    fn consume_one(inp: DataStructure) -> Result<Self, Box<dyn Error>> {
+    fn consume_one(inp: DataStructure) -> Result<Self, VicError> {
 
         let     id           : usize;
         let mut not_empty    : bool               = true;
@@ -83,10 +81,10 @@ impl GetMapData for Country {
                     }
                 }
                 ["religion", content] => {
-                    t_religion      = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);
+                    t_religion      = Some(MapIterator::new(content, DataFormat::Single).get_val()?.to_owned());
                 }
                 ["country_type", content] => {
-                    t_c_type        = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);
+                    t_c_type        = Some(MapIterator::new(content, DataFormat::Single).get_val()?.to_owned());
                 }
                 ["capital", content] => {
                     t_capital       = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);

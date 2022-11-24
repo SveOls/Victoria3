@@ -2,9 +2,9 @@
 
 use image::Rgb;
 
-use std::error::Error;
 use std::path::PathBuf;
 
+use crate::error::VicError;
 use crate::wrappers::RgbWrap;
 use crate::scanner::{GetMapData, DataStructure, MapIterator, DataFormat};
 
@@ -21,7 +21,7 @@ pub struct StrategicRegion {
 }
 
 impl StrategicRegion {
-    pub fn new(inp: PathBuf) -> Result<Vec<Self>, Box<dyn Error>> {
+    pub fn new(inp: PathBuf) -> Result<Vec<Self>, VicError> {
         Self::new_vec(inp)
     }
     pub fn set_id(&mut self, id: usize) {
@@ -45,10 +45,10 @@ impl StrategicRegion {
 }
 
 impl GetMapData for StrategicRegion {
-    fn new_vec(inp: PathBuf) -> Result<Vec<Self>, Box<dyn Error>> {
+    fn new_vec(inp: PathBuf) -> Result<Vec<Self>, VicError> {
         Self::get_data_from(inp.join("game/common/strategic_regions/*.txt"))
     }
-    fn consume_one(inp:   DataStructure) -> Result<Self, Box<dyn Error>> {
+    fn consume_one(inp:   DataStructure) -> Result<Self, VicError> {
 
         let mut color = None;
         let mut capital = None;

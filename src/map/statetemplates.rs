@@ -1,9 +1,9 @@
 
 use image::Rgb;
 
-use std::error::Error;
 use std::path::PathBuf;
 
+use crate::error::VicError;
 use crate::wrappers::RgbWrap;
 use crate::scanner::{GetMapData, DataStructure, MapIterator, DataFormat};
 
@@ -25,7 +25,7 @@ pub struct StateTemplate {
 }
 
 impl StateTemplate {
-    pub fn new(inp: PathBuf) -> Result<Vec<Self>, Box<dyn Error>> {
+    pub fn new(inp: PathBuf) -> Result<Vec<Self>, VicError> {
         Self::new_vec(inp)
     }
     /// checks if state contains province with ID (color).
@@ -77,10 +77,10 @@ impl StateTemplate {
 
 
 impl GetMapData for StateTemplate {
-    fn new_vec(inp: PathBuf) -> Result<Vec<Self>, Box<dyn Error>> {
+    fn new_vec(inp: PathBuf) -> Result<Vec<Self>, VicError> {
         Self::get_data_from(inp.join("game/map_data/state_regions/*.txt"))
     }
-    fn consume_one(inp:   DataStructure) -> Result<Self, Box<dyn Error>> {
+    fn consume_one(inp:   DataStructure) -> Result<Self, VicError> {
 
         let mut t_id = None;
         let mut t_provinces = None;
@@ -110,7 +110,7 @@ impl GetMapData for StateTemplate {
                     arable_land = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?)
                 }
                 ["subsistence_building", content] => {
-                    subsistence_b = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);
+                    subsistence_b = Some(MapIterator::new(content, DataFormat::Single).get_val()?.to_owned());
                     if let Some(a) = &mut subsistence_b {
                         a.pop();
                         a.remove(0);

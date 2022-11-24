@@ -1,7 +1,8 @@
 
-use std::error::Error;
 
-use crate::scanner::{GetMapData, DataStructure, MapIterator, DataFormat};
+
+
+use crate::{scanner::{GetMapData, DataStructure, MapIterator, DataFormat}, error::VicError};
 
 
 #[derive(Debug, Default)]
@@ -27,7 +28,7 @@ impl Culture {
 
 
 impl GetMapData for Culture {
-    fn consume_one(inp: DataStructure) -> Result<Self, Box<dyn Error>> {
+    fn consume_one(inp: DataStructure) -> Result<Self, VicError> {
 
         let mut t_name = None;
         let mut homelands = Vec::new();

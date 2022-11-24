@@ -4,7 +4,7 @@
 
 use image::Rgb;
 
-use std::{error::Error, path::Path};
+use std::path::Path;
 use std::collections::HashMap;
 
 mod strategic;
@@ -19,6 +19,7 @@ pub mod religions;
 pub mod statetemplates;
 
 // use statetemplates::StateTemplate;
+use crate::error::VicError;
 use strategic::StrategicRegion;
 use statetemplates::StateTemplate;
 use countries::Country;
@@ -72,19 +73,46 @@ pub struct Map {
 
 
 impl Map {
-    pub fn new(inp: &Path) -> Result<Self, Box<dyn Error>> {
+    pub fn new(inp: &Path) -> Result<Self, VicError> {
+        println!("scan start");
 
-        let cultures        = Culture::         new(inp.to_path_buf())?;
-        let religions       = Religion::        new(inp.to_path_buf())?;
-        let mut regions     = StrategicRegion:: new(inp.to_path_buf())?;
-        let mut states      = StateTemplate::   new(inp.to_path_buf())?;
-        let water           = Water::           new(inp.to_path_buf())?;
-        let countries       = Country::         new(inp.to_path_buf())?;
-        let named_colors    = NamedColor::      new(inp.to_path_buf())?;
-        let lawgroups       = LawGroup::        new(inp.to_path_buf())?;
-        let laws            = Law::             new(inp.to_path_buf())?;
-        let professions     = Profession::      new(inp.to_path_buf())?;
-        let traits          = Trait::           new(inp.to_path_buf())?;
+        use std::thread;
+        use std::sync::mpsc;
+
+        let(tx1, rx1) = mpsc::channel();
+        let(tx2, rx2) = mpsc::channel();
+        let(tx3, rx3) = mpsc::channel();
+
+        let inp2 = inp.to_path_buf();
+        thread::spawn(move || {
+            tx1.send((
+                Water::             new(inp2.clone()),
+                StrategicRegion::   new(inp2.clone()),
+                StateTemplate::     new(inp2.clone()),
+            ))
+        });
+        let inp3 = inp.to_path_buf();
+        thread::spawn(move || {
+            tx2.send((
+                Country::           new(inp3.clone()),
+                NamedColor::        new(inp3.clone()),
+                Culture::           new(inp3.clone()),
+                Religion::          new(inp3.clone()),
+            ))
+        });
+        let inp4 = inp.to_path_buf();
+        thread::spawn(move || {
+            tx3.send((
+                LawGroup::        new(inp4.clone()),
+                Law::             new(inp4.clone()),
+                Profession::      new(inp4.clone()),
+                Trait::           new(inp4.clone()),
+            ))
+        });
+        let tempest1 = rx1.recv()?;
+        let mut regions     = tempest1.1?;
+        let mut states      = tempest1.2?;
+        let water           = tempest1.0?;
 
         for (id, state) in states.iter_mut().enumerate() {
             state.set_id(id);
@@ -159,6 +187,19 @@ impl Map {
             }
         }
         index_color[0] = (Some(Rgb::from([0; 3])), 0);
+
+        let tempest2 = rx2.recv()?;
+        let tempest3 = rx3.recv()?;
+        let countries       = tempest2.0?;
+        let cultures        = tempest2.2?;
+        let religions       = tempest2.3?;
+        let named_colors    = tempest2.1?;
+        let lawgroups       = tempest3.0?;
+        let laws            = tempest3.1?;
+        let professions     = tempest3.2?;
+        let traits          = tempest3.3?;
+
+        println!("scan end");
         Ok(Self {
             cultures,
             countries,

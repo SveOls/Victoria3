@@ -1,7 +1,7 @@
 
-use std::error::Error;
+
 use std::path::PathBuf;
-use crate::scanner::{GetMapData, DataStructure, MapIterator, DataFormat};
+use crate::{scanner::{GetMapData, DataStructure, MapIterator, DataFormat}, error::VicError};
 
 
 
@@ -20,7 +20,7 @@ pub struct LawGroup {
 
 
 impl Law {
-    pub fn new(inp: PathBuf) -> Result<Vec<Self>, Box<dyn Error>> {
+    pub fn new(inp: PathBuf) -> Result<Vec<Self>, VicError> {
         Self::new_vec(inp)
     }
     pub fn name(&self) -> &String {
@@ -33,7 +33,7 @@ impl Law {
 
 
 impl LawGroup {
-    pub fn new(inp: PathBuf) -> Result<Vec<Self>, Box<dyn Error>> {
+    pub fn new(inp: PathBuf) -> Result<Vec<Self>, VicError> {
         Self::new_vec(inp)
     }
     pub fn name(&self) -> &String {
@@ -46,10 +46,10 @@ impl LawGroup {
 
 
 impl GetMapData for Law {
-    fn new_vec(inp: PathBuf) -> Result<Vec<Self>, Box<dyn Error>> {
+    fn new_vec(inp: PathBuf) -> Result<Vec<Self>, VicError> {
         Self::get_data_from(inp.join("game/common/laws/*.txt"))
     }
-    fn consume_one(inp:   DataStructure) -> Result<Self, Box<dyn Error>> {
+    fn consume_one(inp:   DataStructure) -> Result<Self, VicError> {
 
         let mut t_group = None;
 
@@ -79,10 +79,10 @@ impl GetMapData for Law {
 }
 
 impl GetMapData for LawGroup {
-    fn new_vec(inp: PathBuf) -> Result<Vec<Self>, Box<dyn Error>> {
+    fn new_vec(inp: PathBuf) -> Result<Vec<Self>, VicError> {
         Self::get_data_from(inp.join("game/common/law_groups/*.txt"))
     }
-    fn consume_one(inp:   DataStructure) -> Result<Self, Box<dyn Error>> {
+    fn consume_one(inp:   DataStructure) -> Result<Self, VicError> {
 
         let mut t_category = None;
 

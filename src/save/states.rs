@@ -1,8 +1,9 @@
 
-use std::error::Error;
+
 use std::io;
 
 use super::pops::Pop;
+use crate::error::VicError;
 // use super::super::map::Map;
 use crate::scanner::{GetMapData, DataStructure, MapIterator, DataFormat};
 
@@ -48,13 +49,13 @@ impl State {
         self.pops.push(pop);
     }
     /// returns (pops of selected culture, total population)
-    pub fn culture_pop(&self, culture: usize) -> Result<(usize, usize), Box<dyn Error>> {
+    pub fn culture_pop(&self, culture: usize) -> Result<(usize, usize), VicError> {
         self.pops.iter()
             .map(|p| p.size().and_then(|s| p.culture().and_then(|c| Ok((s, c == culture))))
                 .map(|(s, c)| (if c {s} else {0}, s)))
             .try_fold((0, 0), |a, b| b.and_then(|y| Ok((a.0 + y.0, a.1 + y.1))))
     }
-    pub fn religion_pop(&self, religion: &str) -> Result<(usize, usize), Box<dyn Error>> {
+    pub fn religion_pop(&self, religion: &str) -> Result<(usize, usize), VicError> {
         let mut ret = (0, 0);
         for pop in &self.pops {
             if pop.religion()? == religion {
@@ -64,14 +65,14 @@ impl State {
         }
         Ok(ret)
     }
-    pub fn pop(&self) -> Result<usize, Box<dyn Error>> {
+    pub fn pop(&self) -> Result<usize, VicError> {
         self.pops.iter().try_fold(0, |a, b| b.size().map(|x| x + a))
     }
 }
 
 
 impl GetMapData for State {
-    fn consume_one(inp: DataStructure) -> Result<Self, Box<dyn Error>> {
+    fn consume_one(inp: DataStructure) -> Result<Self, VicError> {
 
         let id;
         let mut t_name      = None;
@@ -131,7 +132,7 @@ impl GetMapData for State {
                 pops: Vec::new()
             })
         } else {
-            Err(Box::new(io::Error::new(io::ErrorKind::Other, "Incorrectly Initialized Pop")))
+            Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, "Incorrectly Initialized Pop"))))
         }
 
     }
