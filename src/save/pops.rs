@@ -37,11 +37,18 @@ impl Pop {
             Ok(self.culture)
         }
     }
-    pub fn religion(&self) -> Result<&str, VicError> {
+    pub fn religion(&self) -> Result<&String, VicError> {
         if self.empty {
-            Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, format!("Tried accessing culture of empty pop:\n{:?}\n", self)))))
+            Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, format!("Tried accessing religion of empty pop:\n{:?}\n", self)))))
         } else {
             Ok(&self.religion)
+        }
+    }
+    pub fn profession(&self) -> Result<&String, VicError> {
+        if self.empty {
+            Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, format!("Tried accessing profession of empty pop:\n{:?}\n", self)))))
+        } else {
+            Ok(&self.profession)
         }
     }
     pub fn workforce(&self) -> Result<usize, VicError> {
@@ -78,8 +85,8 @@ impl GetMapData for Pop {
         let mut t_location:     Option<usize>   = None;
         let mut workplace:      Option<usize>   = None;
         let mut literates:      usize           = 0;
-        let mut t_workforce:    Option<usize>   = None;
-        let mut t_dependents:   Option<usize>   = None;
+        let mut workforce:      usize           = 0;
+        let mut dependents:     usize           = 0;
         let mut t_wealth:       Option<usize>   = None;
 
         let [itr_label, content_outer] = inp.itr_info()?;
@@ -96,10 +103,10 @@ impl GetMapData for Pop {
                     }
                 }
                 ["size_wa", content] => {
-                    t_workforce     = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);
+                    workforce     = MapIterator::new(content, DataFormat::Single).get_val()?.parse()?;
                 }
                 ["size_dn", content] => {
-                    t_dependents    = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);
+                    dependents    = MapIterator::new(content, DataFormat::Single).get_val()?.parse()?;
                 }
                 ["location", content] => {
                     t_location      = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);
@@ -132,8 +139,8 @@ impl GetMapData for Pop {
         }
 
 
-        if let (Some(profession),       Some(religion), Some(culture),  Some(location), Some(workforce),    Some(dependents),   Some(wealth))
-         =     (t_profession.clone(),   t_religion,     t_culture,      t_location,     t_workforce,        t_dependents,       t_wealth) {
+        if let (Some(profession),       Some(religion), Some(culture),  Some(location), Some(wealth))
+         =     (t_profession.clone(),   t_religion,     t_culture,      t_location,     t_wealth) {
             Ok(Self {
                 id,
                 profession,
@@ -153,6 +160,14 @@ impl GetMapData for Pop {
             ret.id = id;
             Ok(ret)
         } else {
+            // print!("{:?}", t_profession);
+            // // print!("{:?}", t_religion);
+            // print!("{:?}", t_culture);
+            // print!("{:?}", t_location);
+            // println!("{:?}", workforce);
+            // println!("{:?}", dependents);
+            // println!("{:?}", t_wealth);
+            // println!("{:?}", id);
             Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, "Incorrectly Initialized Pop"))))
         }
 

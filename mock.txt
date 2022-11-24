@@ -41,3 +41,25 @@ a "recursive" analyzer would iterate through the save file, looking for =, ={ an
 if the data is uninteresting, skip forward until next }. If it is interesting, pass it to relevant function with a return value. Returns upon finding }.
 
 I could build an iterator.
+
+i did!!!
+
+i want to plot
+
+
+culture / religion / profession / wealth / population / .....
+per
+capita / area / absolute
+for
+states / countries / (statetemplates?)
+adjusted to
+linear / exponential / logarithmic
+
+so. I want a general formula that shows:
+
+iterator(Item = (pop, state, country))
+alternatively:
+iterator(Item = (country, (Item = state, (Item = pop))))
+.map(|(a,b,c)| (f(a), b, c))
+
+where f(a) returns a value that can be mapped.

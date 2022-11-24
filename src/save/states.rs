@@ -16,11 +16,12 @@ pub struct State {
 
     provinces:  Vec<usize>,
     // capital province
-    capital:    usize,
+    capital:    Option<usize>,
     // country id
-    country:    usize,
+    country:    Option<usize>,
     // pop vec
-    pops:       Vec<Pop>
+    pops:       Vec<Pop>,
+    empty:      bool,
 }
 
 impl State {
@@ -33,10 +34,10 @@ impl State {
     pub fn provinces(&self) -> impl Iterator<Item = &usize> {
         self.provinces.iter()
     }
-    pub fn country(&self) -> usize {
+    pub fn country(&self) -> Option<usize> {
         self.country
     }
-    pub fn capital(&self) -> usize {
+    pub fn capital(&self) -> Option<usize> {
         self.capital
     }
     pub fn pops(&self) -> impl Iterator<Item = &Pop> {
@@ -76,24 +77,29 @@ impl GetMapData for State {
 
         let id;
         let mut t_name      = None;
-        let mut t_provinces: Option<Vec<usize>> = None;
-        let mut t_capital   = None;
-        let mut t_country   = None;
+        let mut provinces: Vec<usize> = Vec::new();
+        let mut capital   = None;
+        let mut country   = None;
+        let mut empty = false;
 
         let [itr_label, content_outer] = inp.itr_info()?;
 
         id = itr_label.parse()?;
 
         for i in MapIterator::new(content_outer, DataFormat::Labeled) {
-            match i.itr_info()? {
+            match i.info() {
                 ["capital", content] => {
-                    t_capital = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);
+                    capital = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);
                 }
                 ["country", content] => {
-                    t_country = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);
+                    country = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);
                 }
                 ["region", content] => {
                     t_name = Some(MapIterator::new(content, DataFormat::Single).get_val()?.to_owned());
+                    if let Some(a) = &mut t_name {
+                        a.pop();
+                        a.remove(0);
+                    }
                 }
                 ["provinces", content] => {
                     for j in MapIterator::new(content, DataFormat::Labeled) {
@@ -106,33 +112,45 @@ impl GetMapData for State {
                                         ret.push(i);
                                     }
                                 }
-                                if let Some(a) = &mut t_provinces {
-                                    a.append(&mut ret)
-                                } else {
-                                    t_provinces = Some(ret)
-                                }
+                                provinces.append(&mut ret);
                             }
                             _ => panic!()
                         }
                     }
                 }
-                // if states can be empty (id=none), this is where support for that should be added
-                // [_] => unreachable!(),
+                ["none"] => empty = true,
+                [_] => panic!(),
                 _ => {}
             }
         }
-        if let (Some(name), Some(provinces), Some(capital), Some(country))
-         =     (  t_name,     t_provinces,    t_capital,      t_country) {
+        // println!("{:?}", id);
+        // println!("{:?}", t_name);
+        // println!("{:?}", capital);
+        // println!("{:?}", provinces.len());
+        // println!("{:?}", country);
+        if let Some(name)
+         =       t_name   {
             Ok(Self {
                 id,
                 template_name: name,
                 provinces,
                 capital,
                 country,
-                pops: Vec::new()
+                pops: Vec::new(),
+                empty
+            })
+        } else if empty {
+            Ok(Self {
+                id,
+                template_name: String::new(),
+                provinces: Vec::new(),
+                capital: None,
+                country: None,
+                pops: Vec::new(),
+                empty,
             })
         } else {
-            Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, "Incorrectly Initialized Pop"))))
+            Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, "Incorrectly Initialized State"))))
         }
 
     }

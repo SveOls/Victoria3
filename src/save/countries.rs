@@ -58,14 +58,14 @@ impl Country {
 
 impl GetMapData for Country {
     fn consume_one(inp: DataStructure) -> Result<Self, VicError> {
-
+        // println!("ehtyer");
         let     id           : usize;
         let mut not_empty    : bool               = true;
         let mut t_tag        : Option<String>     = None;
         let mut t_capital    : Option<usize>      = None;
         let mut t_cultures   : Option<Vec<usize>> = None;
         let mut t_religion   : Option<String>     = None;
-        let mut t_states     : Option<Vec<usize>> = None;
+        let mut states       : Vec<usize>         = Vec::new();
         let mut t_c_type     : Option<String>     = None;
 
         let [itr_label, content_outer] = inp.itr_info()?;
@@ -93,7 +93,7 @@ impl GetMapData for Country {
                     t_cultures      = Some(MapIterator::new(content, DataFormat::MultiVal).get_vec()?.into_iter().map(|x| x.parse()).collect::<Result<Vec<usize>, std::num::ParseIntError>>()?);
                 }
                 ["states", content] => {
-                    t_states        = Some(MapIterator::new(content, DataFormat::MultiVal).get_vec()?.into_iter().map(|x| x.parse()).collect::<Result<Vec<usize>, std::num::ParseIntError>>()?);
+                    states          = MapIterator::new(content, DataFormat::MultiVal).get_vec()?.into_iter().map(|x| x.parse()).collect::<Result<Vec<usize>, std::num::ParseIntError>>()?;
                 }
                 ["none"] => {
                     not_empty       = false;
@@ -103,8 +103,16 @@ impl GetMapData for Country {
             }
         }
 
-        if let (Some(tag), Some(capital), Some(cultures), Some(religion), Some(states), Some(c_type))
-         =     (t_tag,     t_capital,     t_cultures,     t_religion,     t_states,     t_c_type) {
+            // println!("{t_tag:?}");
+            // println!("{t_capital:?}");
+            // println!("{t_cultures:?}");
+            // println!("{t_religion:?}");
+            // println!("{states:?}");
+            // println!("{t_c_type:?}");
+            // println!("{id:?}");
+            // println!("{not_empty:?}");
+        if let (Some(tag), Some(capital), Some(cultures), Some(religion), Some(c_type))
+         =     (t_tag,     t_capital,     t_cultures,     t_religion,     t_c_type) {
             Ok(Self {
                 tag,
                 capital,
@@ -121,7 +129,7 @@ impl GetMapData for Country {
             ret.not_empty = false;
             Ok(ret)
         } else {
-            panic!()
+            Err(VicError::Other(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Incorrectly Initialized Country"))))
         }
     }
 }

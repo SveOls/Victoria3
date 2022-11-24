@@ -20,8 +20,11 @@ impl Culture {
     pub fn new(inp: PathBuf) -> Result<Vec<Self>, VicError> {
         Self::new_vec(inp)
     }
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &String {
         &self.name
+    }
+    pub fn color(&self) -> RgbWrap {
+        self.color
     }
 }
 

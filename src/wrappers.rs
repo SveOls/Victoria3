@@ -139,6 +139,7 @@ impl RgbWrap {
                 if b.len() >= 6 {
                     temp = [0x10 * b[0] + b[1], 0x10 * b[2] + b[3], 0x10 * b[4] + b[5]];
                 } else {
+                    println!("{}", a);
                     panic!()
                 }
             }

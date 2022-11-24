@@ -31,6 +31,7 @@ impl Save {
 
     pub fn new(inp: &Path) -> Result<Self, VicError> {
 
+        println!("Hey");
         Self::new_vec(inp.to_path_buf()).map(|mut x| x.remove(0))
 
     }
@@ -55,6 +56,9 @@ impl Save {
             ret.insert(country.tag().to_owned(), country.states().map(|&x| state_cultures[x]).fold((0, 0), |a, b| (b.0 + a.0, b.1 + a.1)));
         }
         Ok(ret)
+    }
+    pub fn pops(&self) -> impl Iterator<Item = (&State, impl Iterator<Item = &Pop>)> {
+        self.states().map(|x| (x, x.pops()))
     }
     pub fn cultures(&self)  -> impl Iterator<Item = &Culture> {
         self.cultures.values()
@@ -87,7 +91,7 @@ impl GetMapData for Save {
     fn consume_one(inp: DataStructure) -> Result<Self, VicError> {
 
         // let terr = || -> io::Error { io::Error::new(io::ErrorKind::Other, format!("default error consume save")) };
-
+        println!("hey");
 
         let mut t_pops      : Option<Vec<Pop>> = None;
         let mut t_states    : Option<HashMap<usize, State>> = None;
@@ -156,6 +160,8 @@ impl GetMapData for Save {
 
         let mut writer: Vec<u8> = vec![];
 
+
+        println!("{inp:?}");
 
         match zip::ZipArchive::new(std::fs::File::open(&inp)?) {
             Ok(mut zipper) => {

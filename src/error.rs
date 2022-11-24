@@ -22,7 +22,11 @@ impl fmt::Display for VicError {
 
 impl fmt::Debug for VicError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self)
+        match self {
+            VicError::MapError(a) => write!(f, "error {}", a),
+            VicError::SaveError => write!(f, "aaaaa"),
+            VicError::Other(a) => write!(f, "{:?}", a),
+        }
     }
 }
 

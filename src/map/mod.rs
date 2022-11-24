@@ -72,7 +72,7 @@ pub struct Map {
 }
 
 
-impl Map {
+impl<'a> Map {
     pub fn new(inp: &Path) -> Result<Self, VicError> {
         println!("scan start");
 
@@ -84,31 +84,31 @@ impl Map {
         let(tx3, rx3) = mpsc::channel();
 
         let inp2 = inp.to_path_buf();
-        thread::spawn(move || {
+        thread::Builder::new().name("thread1".to_string()).spawn(move || {
             tx1.send((
                 Water::             new(inp2.clone()),
                 StrategicRegion::   new(inp2.clone()),
                 StateTemplate::     new(inp2.clone()),
             ))
-        });
+        })?;
         let inp3 = inp.to_path_buf();
-        thread::spawn(move || {
+        thread::Builder::new().name("thread2".to_string()).spawn(move || {
             tx2.send((
                 Country::           new(inp3.clone()),
                 NamedColor::        new(inp3.clone()),
                 Culture::           new(inp3.clone()),
                 Religion::          new(inp3.clone()),
             ))
-        });
+        })?;
         let inp4 = inp.to_path_buf();
-        thread::spawn(move || {
+        thread::Builder::new().name("thread3".to_string()).spawn(move || {
             tx3.send((
                 LawGroup::        new(inp4.clone()),
                 Law::             new(inp4.clone()),
                 Profession::      new(inp4.clone()),
                 Trait::           new(inp4.clone()),
             ))
-        });
+        })?;
         let tempest1 = rx1.recv()?;
         let mut regions     = tempest1.1?;
         let mut states      = tempest1.2?;
@@ -243,8 +243,9 @@ impl Map {
     pub fn get_country_color(&self, tag: &str) -> Option<Rgb<u8>> {
         self.countries.iter().find(|&x| x.name() == tag).map(|y| y.color().unravel())
     }
-    pub fn area(&self, provs: &Vec<usize>) -> usize {
-        provs.iter().map(|&x| self.index_color[x].1).sum()
+    // add result later?
+    pub fn area(&'a self, provs: impl Iterator<Item = &'a usize>) -> usize {
+        provs.map(|x| self.index_color[*x].1).sum()
     }
     pub fn get_region(&self, id: usize) -> Option<&StrategicRegion> {
         self.regions.get(id)
@@ -261,5 +262,12 @@ impl Map {
     }
     pub fn job_color(&self, name: &str) -> Option<RgbWrap> {
         self.professions.iter().find(|x| x.name() == name).map(|p| p.color())
+    }
+
+    pub fn religions(&self) -> impl Iterator<Item = &Religion> {
+        self.religions.iter()
+    }
+    pub fn cultures(&self) -> impl Iterator<Item = &Culture> {
+        self.cultures.iter()
     }
 }
