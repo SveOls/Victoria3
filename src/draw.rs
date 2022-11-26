@@ -34,7 +34,7 @@ impl DrawMap {
     /// unassigned_color: if function can't find a color OR the province is a lake or ocean, this is used.
     ///
     /// versions: province map, line map, recolored, recolored with lines. Will always generate a map, even if all false, just not save it.
-    pub fn draw(self, versions: &[bool; 4], inp: &map::Map, data: Option<(HashMap<usize, f64>, Option<Rgb<u8>>)>, resize: Option<f64>, progress_frequency: Option<u32>, sav: Option<&Save>, unassigned_color: Option<Rgb<u8>>) -> Result<(), VicError> {
+    pub fn draw(self, versions: &[bool; 4], inp: &map::Map, data: Option<(HashMap<usize, f64>, Option<RgbWrap>, bool)>, resize: Option<f64>, progress_frequency: Option<u32>, sav: Option<&Save>, unassigned_color: Option<Rgb<u8>>) -> Result<(), VicError> {
 
         let mut savedcolors: HashMap<Rgb<u8>, Rgb<u8>> = HashMap::new();
         let mut statecol: HashMap<String, Rgb<u8>> = HashMap::new();
@@ -50,14 +50,39 @@ impl DrawMap {
         let mut new_map = province_map.clone();
 
         let datacol;
-        let exfac;
-        if let Some((_, Some(a))) = data {
-            datacol = a;
-            exfac = 255.0 / *a.0.iter().max().unwrap() as f64
+        let defcol;
+        let max;
+        let min;
+        let s;
+        let mut v;
+        let gg;
+        if let Some((_, Some(a), tre)) = data {
+            datacol = a.unravel();
+            max = *datacol.0.iter().max().unwrap();
+            min = *datacol.0.iter().min().unwrap();
+            v = max as f64 / 255.0;
+            s = (max != 0).then(|| (max - min) as f64 / max as f64).unwrap_or(0.0);
+            if tre {
+                defcol = Rgb::from([0xFF, 0xFF, 0xFF]);
+            } else {
+                defcol = Rgb::from([0x00, 0x00, 0x00]);
+            }
+            gg = tre;
         } else {
-            datacol = Rgb::from([255,255,255]);
-            exfac = 1.0;
+            max = 0xFF;
+            defcol = Rgb::from([0xFF, 0xFF, 0xFF]);
+            datacol = Rgb::from([0xFF, 0xFF, 0xFF]);
+            v = 1.0;
+            s = 1.0;
+            gg = false;
         }
+        let colc = |x: u8, f: f64| -> u8 {
+            if gg {
+                ((x as f64 + ((max - x) as f64 * (1.0 - f))) / ((1.0 - f)*(v - 1.0) + 1.0)) as u8
+            } else {
+                ((x as f64 - ((max - x) as f64 * (1.0 - f) * ((1.0 - s)/s))) * f) as u8
+            }
+        };
         // panic!("{datacol:?} {exfac}");
 
         let errorthrow = |color: Rgb<u8>, i: u32, width: u32| -> VicError {
@@ -112,7 +137,7 @@ impl DrawMap {
                                     let colore;
                                     if let Some(dat) = &data {
                                         if let Some(factor) = dat.0.get(&state.id().1) {
-                                            colore = Rgb::from([(datacol.0[0] as f64 * exfac * factor) as u8, (datacol.0[1] as f64 * exfac * factor) as u8, (datacol.0[2] as f64 * exfac * factor) as u8]);
+                                            colore = Rgb::from([(datacol.0[0] as f64 * v * factor) as u8, (datacol.0[1] as f64 * v * factor) as u8, (datacol.0[2] as f64 * v * factor) as u8]);
                                         } else {
                                             colore = Rgb::from([0xFF, 0xFF, 0xFF]);
                                         }
@@ -146,12 +171,16 @@ impl DrawMap {
                                     let colore;
                                     if let Some(dat) = &data {
                                         if let Some(factor) = dat.0.get(&id) {
-                                            colore = Rgb::from([(datacol.0[0] as f64 * exfac * factor) as u8, (datacol.0[1] as f64 * exfac * factor) as u8, (datacol.0[2] as f64 * exfac * factor) as u8]);
+                                            if dat.2 {
+                                                colore = Rgb::from([colc(datacol.0[0], *factor), colc(datacol.0[1], *factor), colc(datacol.0[2], *factor)]);
+                                            } else {
+                                                colore = Rgb::from([colc(datacol.0[0], *factor), colc(datacol.0[1], *factor), colc(datacol.0[2], *factor)]);
+                                            }
                                         } else {
-                                            colore = Rgb::from([0xFF, 0xFF, 0xFF]);
+                                            colore = defcol;
                                         }
                                     } else {
-                                        colore = Rgb::from([0xFF, 0xFF, 0xFF]);
+                                        colore = defcol;
                                     }
                                     ids.insert(id, colore);
                                     draw = colore

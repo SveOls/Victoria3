@@ -60,6 +60,7 @@ so. I want a general formula that shows:
 iterator(Item = (pop, state, country))
 alternatively:
 iterator(Item = (country, (Item = state, (Item = pop))))
-.map(|(a,b,c)| (f(a), b, c))
+fold function returns a fold into country or state 
+
 
 where f(a) returns a value that can be mapped.

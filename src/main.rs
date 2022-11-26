@@ -25,6 +25,30 @@ use draw::DrawMap;
 fn main() -> Result<(), VicError> {
 
 
+    // let a = [50, 100, 200];
+    // let max = 200;
+    // let v = 200.0 / 255.0;
+    // let s = 150.0/200.0;
+    // let gg = false;
+    // let test = |x: u8, f: f64| -> u8 {
+    //     if gg {
+    //         ((x as f64 + ((max - x) as f64 * (1.0 - f))) / ((1.0 - f)*(v - 1.0) + 1.0)) as u8
+    //     } else {
+    //         ((x as f64 - ((max - x) as f64 * (1.0 - f) * ((1.0 - s)/s))) * f) as u8
+    //     }
+    // };
+
+    // println!("{}", test(a[0], 0.0));
+    // println!("{}", test(a[1], 0.0));
+    // println!("{}", test(a[2], 0.0));
+    // println!("{}", test(a[0], 0.5));
+    // println!("{}", test(a[1], 0.5));
+    // println!("{}", test(a[2], 0.5));
+    // println!("{}", test(a[0], 1.0));
+    // println!("{}", test(a[1], 1.0));
+    // println!("{}", test(a[2], 1.0));
+    // panic!();
+
 
     app::run()?;
 

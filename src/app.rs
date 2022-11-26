@@ -67,6 +67,7 @@ pub fn run() -> Result<(), VicError> {
         if r.recv().is_some() {
             info.load_map(&game_dir)?;
             info.test()?;
+            println!("done");
         }
     }
 

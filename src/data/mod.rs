@@ -28,7 +28,7 @@ impl Info {
     }
     pub fn test(&mut self) -> Result<(), VicError> {
         self.cur_save = Some(0);
-        let (col, mapper) = self.religion("jewish")?;
+        let (mapper, col) = self.religion("jewish")?;
         println!("jewish");
 
         let statenames = self.get_save().unwrap().states().map(|x| (x.id(), x.state().to_owned())).collect::<HashMap<usize, String>>();
@@ -39,6 +39,21 @@ impl Info {
             }
             println!("{:?}\t{}\t{}", statenames.get(&key), mapper.get(&key).unwrap(), culturepop)
         }
+
+        let mut data2 = self.culture(23)?;
+        let data3 = self.population()?;
+        let mut data3: (HashMap<usize, f64>, Option<RgbWrap>, bool) = (data2.0.iter_mut().map(|(key, val1)| (*key, data3.get(key).map(|x| *val1 as f64 / *x as f64).unwrap_or_else(|| 0.0))).collect(), data2.1, false);
+
+        let max = data3.0.values().fold(0.0f64, |a, &b| a.max(b));
+        let min = data3.0.values().fold(1.0f64, |a, &b| a.min(b));
+        println!("{max}");
+        println!("{min}");
+        data3.0.values_mut().for_each(|x| *x = (*x - min)/(max - min));
+        // let min = data3.0.values().fold();
+
+        let a = super::draw::DrawMap::SaveStatesData;
+
+        a.draw(&[true;4], self.get_map()?, Some(data3), None, None, Some(self.get_save()?), Some(image::Rgb::from([0, 100, 200])))?;
 
         Ok(())
     }
@@ -55,7 +70,7 @@ impl Info {
     ///
     ///
     ///
-    pub fn culture(&self, id: usize) -> Result<(Option<RgbWrap>, HashMap<usize, usize>), VicError> {
+    pub fn culture(&self, id: usize) -> Result<(HashMap<usize, usize>, Option<RgbWrap>), VicError> {
         self.get_save().and_then(|q| {
             q.pops()
                 .map(|(s, p)| {
@@ -76,14 +91,14 @@ impl Info {
                                     .find_map(|l| (l.name() == c.name()).then(|| l.color()))
                             })
                         })
-                        .and_then(|o| o.map(|o1| (o1, x)))
+                        .and_then(|o| o.map(|o1| (x, o1)))
                 })
         })
     }
     pub fn religion(
         &self,
         religion: &str,
-    ) -> Result<(Option<RgbWrap>, HashMap<usize, usize>), VicError> {
+    ) -> Result<(HashMap<usize, usize>, Option<RgbWrap>), VicError> {
         self.get_save().and_then(|q| {
             q.pops()
                 .map(|(s, p)| {
@@ -102,7 +117,7 @@ impl Info {
                             m.religions()
                                 .find_map(|l| (l.name() == religion).then(|| l.color()))
                         })
-                        .map(|o| (o, x))
+                        .map(|o| (x, o))
                 })
         })
     }
