@@ -99,6 +99,7 @@ pub fn run() -> Result<(), VicError> {
                 println!("rel test complete");
             }
             Some(1) => {
+                println!("{game_dir:?}");
                 info.load_map(&game_dir)?;
                 println!("game loaded");
             }
@@ -127,7 +128,7 @@ pub fn run() -> Result<(), VicError> {
             }
             Some(6) => {
                 info.test(None, None, false, true, beit.value())?;
-                println!("country test complete");
+                println!("state test complete");
             }
             _ => {}
         }
