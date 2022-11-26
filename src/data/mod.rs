@@ -26,23 +26,39 @@ impl Info {
     pub fn load_save(&mut self, inp: &Path) -> Result<(), VicError> {
         Ok(self.saves.push(Save::new(inp)?))
     }
-    pub fn test(&mut self) -> Result<(), VicError> {
+    pub fn test(&mut self, cul: Option<usize>, rel: Option<String>, map: bool, states: bool, black: bool) -> Result<(), VicError> {
         self.cur_save = Some(0);
-        let (mapper, col) = self.religion("jewish")?;
-        println!("jewish");
+        // println!("jewish");
+        // println!("{} {} {:?}", self.map.is_some(), self.saves.len(), self.cur_save);
+        // let (mapper, col) = self.religion("jewish")?;
+        // println!("jewish");
 
-        let statenames = self.get_save().unwrap().states().map(|x| (x.id(), x.state().to_owned())).collect::<HashMap<usize, String>>();
+        // let statenames = self.get_save().unwrap().states().map(|x| (x.id(), x.state().to_owned())).collect::<HashMap<usize, String>>();
 
-        for (key, culturepop) in self.population()? {
-            if mapper.get(&key).unwrap() == &0 {
-                continue;
-            }
-            println!("{:?}\t{}\t{}", statenames.get(&key), mapper.get(&key).unwrap(), culturepop)
+        // for (key, culturepop) in self.population()? {
+        //     if mapper.get(&key).unwrap() == &0 {
+        //         continue;
+        //     }
+        //     println!("{:?}\t{}\t{}", statenames.get(&key), mapper.get(&key).unwrap(), culturepop)
+        // }
+        let mut data2;
+        if let Some(a) = cul {
+            data2 = self.culture(a)?;
+        } else if let Some(b) = rel {
+            data2 = self.religion(&b)?;
+        } else if map {
+            let a = super::draw::DrawMap::SaveCountries;
+            a.draw(&[false, true, true, true], self.get_map()?, None, None, None, Some(self.get_save()?), Some(image::Rgb::from([0, 100, 200])))?;
+            return Ok(())
+        } else if states {
+            let a = super::draw::DrawMap::SaveStates;
+            a.draw(&[false, true, true, true], self.get_map()?, None, None, None, Some(self.get_save()?), Some(image::Rgb::from([0, 100, 200])))?;
+            return Ok(())
+        } else {
+            return Ok(())
         }
-
-        let mut data2 = self.culture(23)?;
         let data3 = self.population()?;
-        let mut data3: (HashMap<usize, f64>, Option<RgbWrap>, bool) = (data2.0.iter_mut().map(|(key, val1)| (*key, data3.get(key).map(|x| *val1 as f64 / *x as f64).unwrap_or_else(|| 0.0))).collect(), data2.1, false);
+        let mut data3: (HashMap<usize, f64>, Option<RgbWrap>, bool) = (data2.0.iter_mut().map(|(key, val1)| (*key, data3.get(key).map(|x| *val1 as f64 / *x as f64).unwrap_or_else(|| 0.0))).collect(), data2.1, black);
 
         let max = data3.0.values().fold(0.0f64, |a, &b| a.max(b));
         let min = data3.0.values().fold(1.0f64, |a, &b| a.min(b));
@@ -53,7 +69,7 @@ impl Info {
 
         let a = super::draw::DrawMap::SaveStatesData;
 
-        a.draw(&[true;4], self.get_map()?, Some(data3), None, None, Some(self.get_save()?), Some(image::Rgb::from([0, 100, 200])))?;
+        a.draw(&[false, true, true, true], self.get_map()?, Some(data3), None, None, Some(self.get_save()?), Some(image::Rgb::from([0, 100, 200])))?;
 
         Ok(())
     }
@@ -65,11 +81,6 @@ impl Info {
     fn get_map(&self) -> Result<&Map, VicError> {
         self.map.as_ref().ok_or(VicError::SaveError)
     }
-    /// self.saves
-    ///
-    ///
-    ///
-    ///
     pub fn culture(&self, id: usize) -> Result<(HashMap<usize, usize>, Option<RgbWrap>), VicError> {
         self.get_save().and_then(|q| {
             q.pops()
