@@ -81,7 +81,7 @@ impl DrawMap {
             if gg {
                 ((x as f64 + ((max - x) as f64 * (1.0 - f))) / ((1.0 - f)*(v - 1.0) + 1.0)) as u8
             } else {
-                ((x as f64 - ((max - x) as f64 * (1.0 - f) * ((1.0 - s)/s))) * f) as u8
+                ((x as f64 - ((max - x) as f64 * (1.0 - f) * ((1.0 - s)/s.min(0.00001)))) * f) as u8
             }
         };
         // panic!("{datacol:?} {exfac}");
