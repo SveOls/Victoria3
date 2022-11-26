@@ -33,7 +33,7 @@ impl Info {
         // let (mapper, col) = self.religion("jewish")?;
         // println!("jewish");
 
-        // let statenames = self.get_save().unwrap().states().map(|x| (x.id(), x.state().to_owned())).collect::<HashMap<usize, String>>();
+        let statenames = self.get_save().unwrap().states().map(|x| (x.id(), x.state().to_owned())).collect::<HashMap<usize, String>>();
 
         // for (key, culturepop) in self.population()? {
         //     if mapper.get(&key).unwrap() == &0 {
@@ -59,6 +59,10 @@ impl Info {
         }
         let data3 = self.population()?;
         let mut data3: (HashMap<usize, f64>, Option<RgbWrap>, bool) = (data2.0.iter_mut().map(|(key, val1)| (*key, data3.get(key).map(|x| *val1 as f64 / *x as f64).unwrap_or_else(|| 0.0))).collect(), data2.1, black);
+
+        for i in data3.0.iter().filter(|(_, x)| **x > 0.0).map(|(k, x)| (statenames.get(k), x)) {
+            println!("{:?} {:?}", i.0, i.1)
+        }
 
         let max = data3.0.values().fold(0.0f64, |a, &b| a.max(b));
         let min = data3.0.values().fold(1.0f64, |a, &b| a.min(b));
