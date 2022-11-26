@@ -70,10 +70,11 @@ impl DrawMap {
             }
             gg = tre;
         } else {
-            max = 0xFF;
             defcol = Rgb::from([0xFF, 0xFF, 0xFF]);
             datacol = Rgb::from([0xFF, 0xFF, 0xFF]);
+            max = *datacol.0.iter().max().unwrap();
             v = 1.0;
+            min = *datacol.0.iter().min().unwrap();
             s = 1.0;
             gg = false;
         }
@@ -81,7 +82,11 @@ impl DrawMap {
             if gg {
                 ((x as f64 + ((max - x) as f64 * (1.0 - f))) / ((1.0 - f)*(v - 1.0) + 1.0)) as u8
             } else {
-                ((x as f64 - ((max - x) as f64 * (1.0 - f) * ((1.0 - s)/s.min(0.00001)))) * f) as u8
+                if max - min == 0 {
+                    ((x as f64) * f) as u8
+                } else {
+                    ((x as f64 - ((max - x) as f64 * (1.0 - f) * ((1.0 - s)/s))) * f) as u8
+                }
             }
         };
         // panic!("{datacol:?} {exfac}");
