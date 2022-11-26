@@ -6,7 +6,6 @@ use glob::glob;
 
 use crate::error::VicError;
 
-use jomini;
 
 pub trait GetMapData: Sized {
     fn get_data_from(inp: PathBuf) -> Result<Vec<Self>, VicError> {
