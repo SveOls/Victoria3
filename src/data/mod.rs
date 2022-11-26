@@ -26,7 +26,7 @@ impl Info {
     pub fn load_save(&mut self, inp: &Path) -> Result<(), VicError> {
         Ok(self.saves.push(Save::new(inp)?))
     }
-    pub fn test(&mut self, cul: Option<usize>, rel: Option<String>, map: bool, states: bool, black: bool) -> Result<(), VicError> {
+    pub fn test(&mut self, path: &Path, cul: Option<usize>, rel: Option<String>, map: bool, states: bool, black: bool) -> Result<(), VicError> {
         self.cur_save = Some(0);
         // println!("jewish");
         // println!("{} {} {:?}", self.map.is_some(), self.saves.len(), self.cur_save);
@@ -48,11 +48,11 @@ impl Info {
             data2 = self.religion(&b)?;
         } else if map {
             let a = super::draw::DrawMap::SaveCountries;
-            a.draw(&[false, true, true, true], self.get_map()?, None, None, None, Some(self.get_save()?), Some(image::Rgb::from([0, 100, 200])))?;
+            a.draw(path, &[false, true, true, true], self.get_map()?, None, None, None, Some(self.get_save()?), Some(image::Rgb::from([0, 100, 200])))?;
             return Ok(())
         } else if states {
             let a = super::draw::DrawMap::SaveStates;
-            a.draw(&[false, true, true, true], self.get_map()?, None, None, None, Some(self.get_save()?), Some(image::Rgb::from([0, 100, 200])))?;
+            a.draw(path, &[false, true, true, true], self.get_map()?, None, None, None, Some(self.get_save()?), Some(image::Rgb::from([0, 100, 200])))?;
             return Ok(())
         } else {
             return Ok(())
@@ -69,7 +69,7 @@ impl Info {
 
         let a = super::draw::DrawMap::SaveStatesData;
 
-        a.draw(&[false, true, true, true], self.get_map()?, Some(data3), None, None, Some(self.get_save()?), Some(image::Rgb::from([0, 100, 200])))?;
+        a.draw(path, &[false, true, true, true], self.get_map()?, Some(data3), None, None, Some(self.get_save()?), Some(image::Rgb::from([0, 100, 200])))?;
 
         Ok(())
     }

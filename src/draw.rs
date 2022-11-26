@@ -6,6 +6,7 @@ use super::save::Save;
 
 
 use std::collections::{HashMap, HashSet};
+use std::path::Path;
 
 use crate::error::VicError;
 use crate::wrappers::{ImageWrap, RgbWrap};
@@ -34,7 +35,7 @@ impl DrawMap {
     /// unassigned_color: if function can't find a color OR the province is a lake or ocean, this is used.
     ///
     /// versions: province map, line map, recolored, recolored with lines. Will always generate a map, even if all false, just not save it.
-    pub fn draw(self, versions: &[bool; 4], inp: &map::Map, data: Option<(HashMap<usize, f64>, Option<RgbWrap>, bool)>, resize: Option<f64>, progress_frequency: Option<u32>, sav: Option<&Save>, unassigned_color: Option<Rgb<u8>>) -> Result<(), VicError> {
+    pub fn draw(self, path: &Path, versions: &[bool; 4], inp: &map::Map, data: Option<(HashMap<usize, f64>, Option<RgbWrap>, bool)>, resize: Option<f64>, progress_frequency: Option<u32>, sav: Option<&Save>, unassigned_color: Option<Rgb<u8>>) -> Result<(), VicError> {
 
         let mut savedcolors: HashMap<Rgb<u8>, Rgb<u8>> = HashMap::new();
         let mut statecol: HashMap<String, Rgb<u8>> = HashMap::new();
@@ -44,7 +45,7 @@ impl DrawMap {
         let mut pathpath = std::path::PathBuf::new();
         pathpath.push("/mnt/c/Steam/steamapps/common/Victoria 3/");
 
-        let province_map = crate::wrappers::ImageWrap::new(pathpath, resize)?;
+        let province_map = crate::wrappers::ImageWrap::new(path.to_path_buf(), resize)?;
         let (width, height) = province_map.dimensions();
 
         let mut new_map = province_map.clone();

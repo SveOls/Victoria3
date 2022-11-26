@@ -95,7 +95,7 @@ pub fn run() -> Result<(), VicError> {
     while app.wait() {
         match r.recv() {
             Some(0) => {
-                info.test(None, Some(btu.value().to_owned()), false, false, beit.value())?;
+                info.test(&game_dir, None, Some(btu.value().to_owned()), false, false, beit.value())?;
                 println!("rel test complete");
             }
             Some(1) => {
@@ -104,7 +104,7 @@ pub fn run() -> Result<(), VicError> {
                 println!("game loaded");
             }
             Some(2) => {
-                info.test(Some(tub.value().parse()?), None, false, false, beit.value())?;
+                info.test(&game_dir, Some(tub.value().parse()?), None, false, false, beit.value())?;
                 println!("cul test complete");
             }
             Some(3) => {
@@ -123,11 +123,11 @@ pub fn run() -> Result<(), VicError> {
                     }
             }
             Some(5) => {
-                info.test(None, None, true, false, beit.value())?;
+                info.test(&game_dir, None, None, true, false, beit.value())?;
                 println!("country test complete");
             }
             Some(6) => {
-                info.test(None, None, false, true, beit.value())?;
+                info.test(&game_dir, None, None, false, true, beit.value())?;
                 println!("state test complete");
             }
             _ => {}

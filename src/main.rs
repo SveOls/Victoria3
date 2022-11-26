@@ -158,7 +158,7 @@ fn main() -> Result<(), VicError> {
 
 
     // DrawMap::StrategicRegion.   draw(&all_maps, &data, None,         None, progress_frequency, None,          sea_color)?;
-    DrawMap::StateTemplate.     draw(&all_maps, &data, None,         None, progress_frequency, None,          sea_color)?;
+    // DrawMap::StateTemplate.     draw(&all_maps, &data, None,         None, progress_frequency, None,          sea_color)?;
     // DrawMap::SaveCountries.     draw(&all_maps, &data, None,         None, progress_frequency, Some(&stuff),  sea_color)?;
     // DrawMap::SaveStates.        draw(&all_maps, &data, None,         None, progress_frequency, Some(&stuff),  sea_color)?;
     // DrawMap::SaveStatesData.    draw(&all_maps, &data, Some((d, c)), None, progress_frequency, Some(&stuff),  sea_color)?;
