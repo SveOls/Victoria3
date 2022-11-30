@@ -108,6 +108,7 @@ pub fn run() -> Result<(), VicError> {
                 println!("cul test complete");
             }
             Some(3) => {
+                info.clear_saves();
                 let save_files = find_files("save")?;
                 println!("{:?}", save_files);
                 // choice.clear();

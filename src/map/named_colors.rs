@@ -4,13 +4,13 @@ use std::path::PathBuf;
 use crate::error::VicError;
 use crate::scanner::{GetMapData, DataStructure, MapIterator, DataFormat};
 
-use crate::wrappers::RgbWrap;
+use crate::wrappers::ColorWrap;
 
 
 #[derive(Debug)]
 pub struct NamedColor {
     name:  String,
-    color: RgbWrap,
+    color: ColorWrap,
 }
 
 
@@ -21,7 +21,7 @@ impl NamedColor {
     pub fn name(&self) -> &String {
         &self.name
     }
-    pub fn color(&self) -> RgbWrap {
+    pub fn color(&self) -> ColorWrap {
         self.color
     }
 }
@@ -36,7 +36,7 @@ impl GetMapData for NamedColor {
         let [itr_label, content] = inp.itr_info()?;
 
         let name = itr_label.to_owned();
-        let color = RgbWrap::to_rgb(MapIterator::new(content, DataFormat::Single).get_val()?)?;
+        let color = ColorWrap::to_colorwrap(MapIterator::new(content, DataFormat::Single).get_val()?)?;
 
         Ok(Self {
             name,

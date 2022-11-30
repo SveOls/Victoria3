@@ -1,7 +1,6 @@
 // #![feature(iterator_try_collect, result_option_inspect, type_alias_impl_trait, is_some_and)]
-#![feature(iterator_try_collect)]
+#![feature(iterator_try_collect, iter_next_chunk)]
 #![allow(dead_code, unreachable_code)]
-
 
 use std::collections::HashMap;
 use std::path::PathBuf;

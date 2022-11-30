@@ -31,7 +31,7 @@ use professions::Profession;
 use cultures::Culture;
 use laws::{Law, LawGroup};
 
-use crate::wrappers::RgbWrap;
+use crate::wrappers::ColorWrap;
 
 
 // #[derive(Debug)]
@@ -260,7 +260,7 @@ impl<'a> Map {
     pub fn state_area(&self) -> impl Iterator<Item = (&StateTemplate, usize)> {//-> impl Iterator<Item = (StateTemplate, usize)> {
         self.states.iter().map(|x| (x, self.index_color.iter().filter(|y| x.contains(y.0)).fold(0, |a, b| a + b.1)))
     }
-    pub fn job_color(&self, name: &str) -> Option<RgbWrap> {
+    pub fn job_color(&self, name: &str) -> Option<ColorWrap> {
         self.professions.iter().find(|x| x.name() == name).map(|p| p.color())
     }
 

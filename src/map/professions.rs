@@ -5,13 +5,13 @@ use std::path::PathBuf;
 use crate::error::VicError;
 use crate::scanner::{GetMapData, DataStructure, MapIterator, DataFormat};
 
-use crate::wrappers::RgbWrap;
+use crate::wrappers::ColorWrap;
 
 
 #[derive(Debug)]
 pub struct Profession {
     name: String,
-    color: RgbWrap,
+    color: ColorWrap,
     strata: String,
 }
 
@@ -26,7 +26,7 @@ impl Profession {
     pub fn strata(&self) -> &String {
         &self.strata
     }
-    pub fn color(&self) -> RgbWrap {
+    pub fn color(&self) -> ColorWrap {
         self.color
     }
 }
@@ -48,7 +48,7 @@ impl GetMapData for Profession {
         for i in MapIterator::new(content_outer, DataFormat::Labeled) {
             match i.itr_info()? {
                 ["color", content] => {
-                    t_color = Some(RgbWrap::to_rgb(MapIterator::new(content, DataFormat::Single).get_val()?)?)
+                    t_color = Some(ColorWrap::to_colorwrap(MapIterator::new(content, DataFormat::Single).get_val()?)?)
                 }
                 ["strata", content] => {
                     t_strata = Some(MapIterator::new(content, DataFormat::Single).get_val()?.to_owned())

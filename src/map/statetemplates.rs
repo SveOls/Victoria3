@@ -4,7 +4,7 @@ use image::Rgb;
 use std::path::PathBuf;
 
 use crate::error::VicError;
-use crate::wrappers::RgbWrap;
+use crate::wrappers::ColorWrap;
 use crate::scanner::{GetMapData, DataStructure, MapIterator, DataFormat};
 
 #[derive(Debug, Default)]
@@ -102,7 +102,7 @@ impl GetMapData for StateTemplate {
                 ["provinces", content] => {
                     let mut temp = Vec::new();
                     for x in MapIterator::new(content, DataFormat::MultiVal).get_vec()? {
-                        temp.push(RgbWrap::to_rgb(x)?.unravel())
+                        temp.push(ColorWrap::to_colorwrap(x)?.unravel())
                     }
                     t_provinces = Some(temp)
                 }

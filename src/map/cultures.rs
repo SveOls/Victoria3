@@ -3,14 +3,14 @@
 use std::path::PathBuf;
 use crate::scanner::{GetMapData, DataStructure, MapIterator, DataFormat};
 
-use crate::wrappers::RgbWrap;
+use crate::wrappers::ColorWrap;
 use crate::error::VicError;
 
 #[derive(Debug)]
 pub struct Culture {
     name:       String,
     traits:     Vec<String>,
-    color:      RgbWrap,
+    color:      ColorWrap,
     religion:   String,
     obsessions: Vec<String>,
 }
@@ -23,7 +23,7 @@ impl Culture {
     pub fn name(&self) -> &String {
         &self.name
     }
-    pub fn color(&self) -> RgbWrap {
+    pub fn color(&self) -> ColorWrap {
         self.color
     }
 }
@@ -55,7 +55,7 @@ impl GetMapData for Culture {
                     );
                 }
                 ["color", content] => {
-                    t_color = Some(RgbWrap::to_rgb(MapIterator::new(content, DataFormat::Single).get_val()?)?)
+                    t_color = Some(ColorWrap::to_colorwrap(MapIterator::new(content, DataFormat::Single).get_val()?)?)
                 }
                 ["religion", content] => {
                     t_religion = Some(MapIterator::new(content, DataFormat::Single).get_val()?.to_owned())

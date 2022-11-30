@@ -5,14 +5,14 @@ use image::Rgb;
 use std::path::PathBuf;
 
 use crate::error::VicError;
-use crate::wrappers::RgbWrap;
+use crate::wrappers::ColorWrap;
 use crate::scanner::{GetMapData, DataStructure, MapIterator, DataFormat};
 
 #[derive(Debug, Default)]
 pub struct StrategicRegion {
     id:         Option<usize>,
     name:       String,
-    color:      Option<RgbWrap>,
+    color:      Option<ColorWrap>,
     capital:    Option<Rgb<u8>>,
     culture:    Option<String>,
     states:     Vec<String>,
@@ -39,7 +39,7 @@ impl StrategicRegion {
     pub fn name(&self) -> &String {
         &self.name
     }
-    pub fn color(&self) -> Option<RgbWrap> {
+    pub fn color(&self) -> Option<ColorWrap> {
         self.color
     }
 }
@@ -65,11 +65,11 @@ impl GetMapData for StrategicRegion {
                     culture = Some(MapIterator::new(content, DataFormat::Single).get_val()?.to_owned())
                 }
                 ["map_color", content] => {
-                    color = Some(RgbWrap::to_rgb(MapIterator::new(content, DataFormat::Single).get_val()?)?)
+                    color = Some(ColorWrap::to_colorwrap(MapIterator::new(content, DataFormat::Single).get_val()?)?)
                 }
                 ["capital_province", content] => {
                     let c = MapIterator::new(content, DataFormat::Single).get_val()?;
-                    capital = Some(RgbWrap::to_rgb(c)?.unravel());
+                    capital = Some(ColorWrap::to_colorwrap(c)?.unravel());
                 }
                 ["states", content] => {
                     t_states = Some(MapIterator::new(content, DataFormat::MultiVal)

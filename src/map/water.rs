@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use crate::error::VicError;
 use crate::scanner::{MapIterator, DataFormat, GetMapData, DataStructure};
 
-use crate::wrappers::RgbWrap;
+use crate::wrappers::ColorWrap;
 
 #[derive(Debug)]
 pub struct Water {
@@ -40,14 +40,14 @@ impl GetMapData for Water {
                     t_sea = Some(
                         MapIterator::new(content, DataFormat::MultiVal)
                             .get_vec()?.into_iter()//.inspect(|x| println!("{x}"))
-                            .map(|s| RgbWrap::to_rgb(s).map(|x| x.unravel())).try_collect()?
+                            .map(|s| ColorWrap::to_colorwrap(s).map(|x| x.unravel())).try_collect()?
                     );
                 }
                 ["lakes", content] => {
                     t_lakes = Some(
                         MapIterator::new(content, DataFormat::MultiVal)
                             .get_vec()?.into_iter()//.inspect(|x| println!("{x}"))
-                            .map(|s| RgbWrap::to_rgb(s).map(|x| x.unravel())).try_collect()?
+                            .map(|s| ColorWrap::to_colorwrap(s).map(|x| x.unravel())).try_collect()?
                     );
                 }
                 _ => {}

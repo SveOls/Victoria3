@@ -1,0 +1,14 @@
+"filename", "language", "Rust", "comment", "blank", "total"
+"/home/seolsen/rust/paradox/victoria3/src/app.rs", "Rust", -35, 35, 0, 0
+"/home/seolsen/rust/paradox/victoria3/src/draw.rs", "Rust", -28, 28, 0, 0
+"/home/seolsen/rust/paradox/victoria3/src/main.rs", "Rust", -54, 54, 0, 0
+"/home/seolsen/rust/paradox/victoria3/src/map/laws.rs", "Rust", -2, 2, 0, 0
+"/home/seolsen/rust/paradox/victoria3/src/save/countries.rs", "Rust", -21, 21, 0, 0
+"/home/seolsen/rust/paradox/victoria3/src/save/cultures.rs", "Rust", -1, 1, 0, 0
+"/home/seolsen/rust/paradox/victoria3/src/save/mod.rs", "Rust", -10, 10, 0, 0
+"/home/seolsen/rust/paradox/victoria3/src/save/pops.rs", "Rust", -8, 8, 0, 0
+"/home/seolsen/rust/paradox/victoria3/src/save/states.rs", "Rust", -12, 12, 0, 0
+"/home/seolsen/rust/paradox/victoria3/src/scanner copy.rs", "Rust", -91, 91, 0, 0
+"/home/seolsen/rust/paradox/victoria3/src/testing.rs", "Rust", -63, 63, 0, 0
+"/home/seolsen/rust/paradox/victoria3/src/wrappers.rs", "Rust", -10, 10, 0, 0
+"Total", "-", -335, 335, 0, 0

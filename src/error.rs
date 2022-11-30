@@ -1,5 +1,5 @@
 
-use std::{error, fmt, num::{ParseFloatError, ParseIntError}};
+use std::{error, fmt, num::{ParseFloatError, ParseIntError}, array::IntoIter};
 
 use fltk::prelude::FltkError;
 use glob::{GlobError, PatternError};
@@ -16,7 +16,7 @@ impl error::Error for VicError {}
 
 impl fmt::Display for VicError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "__")
     }
 }
 
@@ -62,6 +62,11 @@ impl From<GlobError> for VicError {
 impl From<std::io::Error> for VicError {
     fn from(error: std::io::Error) -> Self {
         VicError::Other(Box::new(error))
+    }
+}
+impl<const N: usize> From<IntoIter<u8, N>> for VicError {
+    fn from(error: IntoIter<u8, N>) -> Self {
+        VicError::MapError(format!("{:?}, {N:?}", error.collect::<Vec<_>>()))
     }
 }
 impl From<PatternError> for VicError {

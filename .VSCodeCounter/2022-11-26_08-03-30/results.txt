@@ -1,0 +1,57 @@
+Date : 2022-11-26 08:03:30
+Directory : /home/seolsen/rust/paradox/victoria3/src
+Total : 29 files,  3102 codes, 143 comments, 531 blanks, all 3776 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| Rust     |         29 |      3,102 |        143 |        531 |      3,776 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++----------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                 | files      | code       | comment    | blank      | total      |
++----------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                    |         29 |      3,102 |        143 |        531 |      3,776 |
+| data                                                                 |          1 |        141 |         17 |         13 |        171 |
+| map                                                                  |         14 |        940 |         35 |        182 |      1,157 |
+| map/history                                                          |          3 |          0 |          0 |          3 |          3 |
+| save                                                                 |          5 |        647 |          0 |         84 |        731 |
++----------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++----------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                                             | language | code       | comment    | blank      | total      |
++----------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| /home/seolsen/rust/paradox/victoria3/src/app.rs                      | Rust     |        150 |          0 |         33 |        183 |
+| /home/seolsen/rust/paradox/victoria3/src/data/mod.rs                 | Rust     |        141 |         17 |         13 |        171 |
+| /home/seolsen/rust/paradox/victoria3/src/draw.rs                     | Rust     |        289 |          0 |         34 |        323 |
+| /home/seolsen/rust/paradox/victoria3/src/error.rs                    | Rust     |         79 |          0 |         16 |         95 |
+| /home/seolsen/rust/paradox/victoria3/src/main.rs                     | Rust     |        131 |          0 |         41 |        172 |
+| /home/seolsen/rust/paradox/victoria3/src/map/countries.rs            | Rust     |         47 |          0 |         15 |         62 |
+| /home/seolsen/rust/paradox/victoria3/src/map/cultures.rs             | Rust     |         71 |          1 |         15 |         87 |
+| /home/seolsen/rust/paradox/victoria3/src/map/history/mod.rs          | Rust     |          0 |          0 |          1 |          1 |
+| /home/seolsen/rust/paradox/victoria3/src/map/history/setup_pops.rs   | Rust     |          0 |          0 |          1 |          1 |
+| /home/seolsen/rust/paradox/victoria3/src/map/history/setup_states.rs | Rust     |          0 |          0 |          1 |          1 |
+| /home/seolsen/rust/paradox/victoria3/src/map/laws.rs                 | Rust     |         88 |          0 |         24 |        112 |
+| /home/seolsen/rust/paradox/victoria3/src/map/mod.rs                  | Rust     |        212 |         25 |         36 |        273 |
+| /home/seolsen/rust/paradox/victoria3/src/map/named_colors.rs         | Rust     |         41 |          0 |         12 |         53 |
+| /home/seolsen/rust/paradox/victoria3/src/map/professions.rs          | Rust     |         56 |          0 |         15 |         71 |
+| /home/seolsen/rust/paradox/victoria3/src/map/religions.rs            | Rust     |         65 |          1 |         14 |         80 |
+| /home/seolsen/rust/paradox/victoria3/src/map/statetemplates.rs       | Rust     |        178 |          5 |         12 |        195 |
+| /home/seolsen/rust/paradox/victoria3/src/map/strategic.rs            | Rust     |         87 |          2 |         12 |        101 |
+| /home/seolsen/rust/paradox/victoria3/src/map/traits.rs               | Rust     |         37 |          0 |         14 |         51 |
+| /home/seolsen/rust/paradox/victoria3/src/map/water.rs                | Rust     |         58 |          1 |         10 |         69 |
+| /home/seolsen/rust/paradox/victoria3/src/save/countries.rs           | Rust     |        125 |          0 |         10 |        135 |
+| /home/seolsen/rust/paradox/victoria3/src/save/cultures.rs            | Rust     |         49 |          0 |         14 |         63 |
+| /home/seolsen/rust/paradox/victoria3/src/save/mod.rs                 | Rust     |        170 |          0 |         29 |        199 |
+| /home/seolsen/rust/paradox/victoria3/src/save/pops.rs                | Rust     |        159 |          0 |         17 |        176 |
+| /home/seolsen/rust/paradox/victoria3/src/save/states.rs              | Rust     |        144 |          0 |         14 |        158 |
+| /home/seolsen/rust/paradox/victoria3/src/scanner copy.rs             | Rust     |        273 |          0 |         32 |        305 |
+| /home/seolsen/rust/paradox/victoria3/src/scanner.rs                  | Rust     |        198 |         91 |         33 |        322 |
+| /home/seolsen/rust/paradox/victoria3/src/testing.rs                  | Rust     |        105 |          0 |         37 |        142 |
+| /home/seolsen/rust/paradox/victoria3/src/utilities.rs                | Rust     |         17 |          0 |          4 |         21 |
+| /home/seolsen/rust/paradox/victoria3/src/wrappers.rs                 | Rust     |        132 |          0 |         22 |        154 |
+| Total                                                                |          |      3,102 |        143 |        531 |      3,776 |
++----------------------------------------------------------------------+----------+------------+------------+------------+------------+

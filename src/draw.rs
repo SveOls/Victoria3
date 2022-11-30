@@ -6,10 +6,13 @@ use super::save::Save;
 
 
 use std::collections::{HashMap, HashSet};
+use std::default;
 use std::path::Path;
+use std::path::PathBuf;
 
+use crate::data::Info;
 use crate::error::VicError;
-use crate::wrappers::{ImageWrap, RgbWrap};
+use crate::wrappers::{ImageWrap, ColorWrap};
 
 use image::Rgb;
 
@@ -23,6 +26,79 @@ pub enum DrawMap {
     StateTemplateData,
 }
 
+pub enum Coloring {
+    StateTemplates,
+    SaveStates,
+    SaveCountries,
+    Provinces,
+    None,
+}
+
+impl Default for Coloring {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+#[derive(Default)]
+pub struct MapDrawer {
+    resize:         Option<f64>,
+    numerator:      Option<HashMap<usize, f64>>,
+    denominator:    Option<HashMap<usize, f64>>,
+    /// these two hashmaps might hog space. idk.
+    lines:          Coloring,
+    premade_lines:  HashMap<Coloring, ImageWrap>,
+    color_map:      Coloring,
+    premade_color:  HashMap<Coloring, ImageWrap>,
+    /// color of ocean
+    color:          Option<ColorWrap>,
+    /// color of data - overrides the default.
+    othercolor:     Option<ColorWrap>,
+    province_path:  Option<PathBuf>,
+    darkmode:       bool,
+}
+
+impl MapDrawer {
+    pub fn resize(&mut self, inp: f64) {
+        self.resize = Some(inp)
+    }
+    /// generally a religion, culture, or something else.
+    pub fn set_numerator(&mut self, inp: HashMap<usize, f64>) {
+        self.numerator = Some(inp)
+    }
+    /// generally per capita or per area
+    pub fn set_denominator(&mut self, inp: HashMap<usize, f64>) {
+        self.denominator = Some(inp)
+    }
+    pub fn set_color(&mut self, inp: ColorWrap) {
+        self.color = Some(inp)
+    }
+    pub fn set_unassigned_color(&mut self, inp: ColorWrap) {
+        self.othercolor = Some(inp)
+    }
+    pub fn darkmode(&mut self, inp: bool) {
+        self.darkmode = inp
+    }
+    pub fn set_lines(&mut self, inp: Coloring) {
+        self.lines = inp
+    }
+    pub fn set_color_map(&mut self, inp: Coloring) {
+        self.color_map = inp
+    }
+    pub fn clear(self) -> Self {
+        Self {
+            premade_lines: self.premade_lines,
+            premade_color: self.premade_color,
+            ..Self::default()
+        }
+    }
+    pub fn draw(&mut self, info: &Info) {
+
+    }
+}
+
+
+
 impl DrawMap {
     /// resize: 100 = normal, 10 = width and height is 10%, etc.
     ///
@@ -35,7 +111,7 @@ impl DrawMap {
     /// unassigned_color: if function can't find a color OR the province is a lake or ocean, this is used.
     ///
     /// versions: province map, line map, recolored, recolored with lines. Will always generate a map, even if all false, just not save it.
-    pub fn draw(self, path: &Path, versions: &[bool; 4], inp: &map::Map, data: Option<(HashMap<usize, f64>, Option<RgbWrap>, bool)>, resize: Option<f64>, progress_frequency: Option<u32>, sav: Option<&Save>, unassigned_color: Option<Rgb<u8>>) -> Result<(), VicError> {
+    pub fn draw(self, path: &Path, versions: &[bool; 4], inp: &map::Map, data: Option<(HashMap<usize, f64>, Option<ColorWrap>, bool)>, resize: Option<f64>, progress_frequency: Option<u32>, sav: Option<&Save>, unassigned_color: Option<Rgb<u8>>) -> Result<(), VicError> {
 
         let mut savedcolors: HashMap<Rgb<u8>, Rgb<u8>> = HashMap::new();
         let mut statecol: HashMap<String, Rgb<u8>> = HashMap::new();
@@ -52,44 +128,17 @@ impl DrawMap {
 
         let datacol;
         let defcol;
-        let max;
-        let min;
-        let s;
-        let mut v;
-        let gg;
         if let Some((_, Some(a), tre)) = data {
-            datacol = a.unravel();
-            max = *datacol.0.iter().max().unwrap();
-            min = *datacol.0.iter().min().unwrap();
-            v = max as f64 / 255.0;
-            s = (max != 0).then(|| (max - min) as f64 / max as f64).unwrap_or(0.0);
+            datacol = a;
             if tre {
-                defcol = Rgb::from([0xFF, 0xFF, 0xFF]);
+                defcol = ColorWrap::Rgb(Rgb::from([0xFF, 0xFF, 0xFF]));
             } else {
-                defcol = Rgb::from([0x00, 0x00, 0x00]);
+                defcol = ColorWrap::Rgb(Rgb::from([0x00, 0x00, 0x00]));
             }
-            gg = tre;
         } else {
-            defcol = Rgb::from([0xFF, 0xFF, 0xFF]);
-            datacol = Rgb::from([0xFF, 0xFF, 0xFF]);
-            max = *datacol.0.iter().max().unwrap();
-            v = 1.0;
-            min = *datacol.0.iter().min().unwrap();
-            s = 1.0;
-            gg = false;
+            defcol = ColorWrap::Rgb(Rgb::from([0x0, 0x00, 0x00]));
+            datacol = ColorWrap::Rgb(Rgb::from([0xFF, 0xFF, 0xFF]));
         }
-        let colc = |x: u8, f: f64| -> u8 {
-            if gg {
-                ((x as f64 + ((max - x) as f64 * (1.0 - f))) / ((1.0 - f)*(v - 1.0) + 1.0)) as u8
-            } else {
-                if max - min == 0 {
-                    ((x as f64) * f) as u8
-                } else {
-                    ((x as f64 - ((max - x) as f64 * (1.0 - f) * ((1.0 - s)/s))) * f) as u8
-                }
-            }
-        };
-        // panic!("{datacol:?} {exfac}");
 
         let errorthrow = |color: Rgb<u8>, i: u32, width: u32| -> VicError {
             VicError::Other(Box::new(std::io::Error::new(std::io::ErrorKind::Other, format!("{:?}: failed at color: {:X}{:X}{:X} and coordinate: {}x, {}y", self, color[0], color[1], color[2], i%width, i/width))))
@@ -143,7 +192,7 @@ impl DrawMap {
                                     let colore;
                                     if let Some(dat) = &data {
                                         if let Some(factor) = dat.0.get(&state.id().1) {
-                                            colore = Rgb::from([(datacol.0[0] as f64 * v * factor) as u8, (datacol.0[1] as f64 * v * factor) as u8, (datacol.0[2] as f64 * v * factor) as u8]);
+                                            colore = defcol.scale_to(&datacol, *factor).unravel();
                                         } else {
                                             colore = Rgb::from([0xFF, 0xFF, 0xFF]);
                                         }
@@ -178,15 +227,15 @@ impl DrawMap {
                                     if let Some(dat) = &data {
                                         if let Some(factor) = dat.0.get(&id) {
                                             if dat.2 {
-                                                colore = Rgb::from([colc(datacol.0[0], *factor), colc(datacol.0[1], *factor), colc(datacol.0[2], *factor)]);
+                                                colore = datacol.scale_to(&defcol, *factor).unravel();
                                             } else {
-                                                colore = Rgb::from([colc(datacol.0[0], *factor), colc(datacol.0[1], *factor), colc(datacol.0[2], *factor)]);
+                                                colore = datacol.scale_to(&defcol, *factor).unravel();
                                             }
                                         } else {
-                                            colore = defcol;
+                                            colore = defcol.unravel();
                                         }
                                     } else {
-                                        colore = defcol;
+                                        colore = defcol.unravel();
                                     }
                                     ids.insert(id, colore);
                                     draw = colore
@@ -288,7 +337,7 @@ impl DrawMap {
         let below   = inp.pixels_offset(|x| x.checked_sub(1), |y| y.checked_add(0));
         let left    = inp.pixels_offset(|x| x.checked_add(1), |y| y.checked_add(0));
 
-        let mut blank = inp.new_empty(RgbWrap::from(Rgb::from([255, 255, 255])));
+        let mut blank = inp.new_empty(ColorWrap::from(Rgb::from([255, 255, 255])));
 
         //Zips a mutable iterator over a wite map with:
         //an iterator over neighboring pixels, folding into True if all pixels are equal, and False if they are not.
@@ -298,7 +347,7 @@ impl DrawMap {
                 .zip(mid.zip(above.zip(right.zip(below.zip(left))))
                 .map(|x| [x.0, x.1.0, x.1.1.0, x.1.1.1.0, x.1.1.1.1]).map(|x| x.iter().filter_map(|&x| x).collect::<HashSet<_>>().len() == 1));
 
-            while let Some((pixel, condition)) = temp.next() {
+            for (pixel, condition) in temp {
                 if !condition {
                     *pixel = Rgb::from([0u8, 0, 0]);
                 }
