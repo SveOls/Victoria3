@@ -29,7 +29,7 @@ impl Info {
     pub fn clear_saves(&mut self) {
         self.saves = Vec::new()
     }
-    pub fn test(&mut self, path: &Path, cul: Option<usize>, rel: Option<String>, map: bool, states: bool, black: bool) -> Result<(), VicError> {
+    pub fn test(&mut self, path: &Path, cul: Option<String>, rel: Option<String>, map: bool, states: bool, black: bool) -> Result<(), VicError> {
         self.cur_save = Some(0);
         // println!("jewish");
         // println!("{} {} {:?}", self.map.is_some(), self.saves.len(), self.cur_save);
@@ -46,7 +46,7 @@ impl Info {
         // }
         let mut data2;
         if let Some(a) = cul {
-            data2 = self.culture(a)?;
+            data2 = self.culture2(&a)?;
         } else if let Some(b) = rel {
             data2 = self.religion(&b)?;
         } else if map {
@@ -115,6 +115,29 @@ impl Info {
                         .and_then(|o| o.map(|o1| (x, o1)))
                 })
         })
+    }
+    pub fn culture2(&self, test: &str) -> Result<(HashMap<usize, usize>, Option<ColorWrap>), VicError> {
+        self.get_map().and_then(|m|
+            self.get_save().and_then(|q| {
+                q.cultures().find(|i| i.name() == test).map(|y|
+                    q.pops()
+                        .map(|(s, p)| {
+                            p.filter_map(|p| {
+                                p.culture()
+                                    .and_then(|w| (w == y.id()).then(|| p.size()).transpose())
+                                    .transpose()
+                            })
+                            .sum::<Result<_, _>>()
+                            .map(|k: usize| (s.id(), k))
+                        })
+                        .collect::<Result<HashMap<usize, usize>, VicError>>()
+                    .and_then(|x| {
+                        q.get_culture(y.id())
+                            .map(|c| (x, m.cultures().find_map(|l| (l.name() == c.name()).then(|| l.color()))))
+                    })
+                    ).unwrap_or(Ok((HashMap::new(), None)))
+            })
+        )
     }
     pub fn religion(
         &self,

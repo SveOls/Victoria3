@@ -58,7 +58,7 @@ pub fn run() -> Result<(), VicError> {
 
     // let frame = Frame::default().with_size(200, 100).center_of(&wind);
     let mut but = Button::new(360, 20, 100, 40, "Scan Map");
-    let mut tub = input::IntInput::new(580, 420, 120, 40, "Culture");
+    let mut tub = input::Input::new(580, 420, 120, 40, "Culture");
     tub.set_trigger(CallbackTrigger::EnterKeyAlways);
     let mut btu = input::Input::new(580, 360, 120, 40, "Religion");
     btu.set_trigger(CallbackTrigger::EnterKeyAlways);
@@ -104,7 +104,7 @@ pub fn run() -> Result<(), VicError> {
                 println!("game loaded");
             }
             Some(2) => {
-                info.test(&game_dir, Some(tub.value().parse()?), None, false, false, beit.value())?;
+                info.test(&game_dir, Some(tub.value().to_owned()), None, false, false, beit.value())?;
                 println!("cul test complete");
             }
             Some(3) => {

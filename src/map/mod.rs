@@ -159,7 +159,7 @@ impl<'a> Map {
                 index_color[val as usize].1 += 1;
             } else {
                 let mut change = false;
-                'outer: for state in &states {
+                'outer2: for state in &states {
                     if state.contains(img_pixel) {
                         if let Some(pixel_offset) = state.get_offset() {
 
@@ -172,7 +172,7 @@ impl<'a> Map {
                                     index_color[i].1 += 1;
                                     provinces.insert(img_pixel, i);
 
-                                    break 'outer;
+                                    break 'outer2;
                                 }
                             }
                             unreachable!();
