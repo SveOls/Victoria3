@@ -1,4 +1,3 @@
-
 // no warnings for testing stuff
 #![allow(unreachable_code)]
 #![allow(unused_imports)]
@@ -7,43 +6,38 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
-use std::fs::File;
-use std::{fs, io};
-use std::io::{prelude::*, BufReader};
+use glob::{glob, Paths, PatternError};
 use image::{ImageBuffer, Pixel};
 use std::error::Error;
-use glob::{glob, Paths, PatternError};
+use std::fs::File;
+use std::io::{prelude::*, BufReader};
 use std::str;
+use std::{fs, io};
 
 pub fn tester() -> Result<(), Box<dyn Error>> {
-
-
-
-
     let mut zipper: zip::ZipArchive<std::fs::File>;
     let mut writer: Vec<u8> = vec![];
-    let file:       zip::read::ZipFile;
-    let f:          std::fs::File;
+    let file: zip::read::ZipFile;
+    let f: std::fs::File;
 
+    f = File::open(format!(
+        "/mnt/c/Users/sverr/Documents/Paradox Interactive/Victoria 3/save games/{}.v3",
+        "great britain_1836_01_01"
+    ))?;
 
-    f = File::open(format!("/mnt/c/Users/sverr/Documents/Paradox Interactive/Victoria 3/save games/{}.v3", "great britain_1836_01_01"))?;
-
-    zipper  = zip::ZipArchive::new(f)?;
-    file    = zipper.by_name("gamestate")?;
+    zipper = zip::ZipArchive::new(f)?;
+    file = zipper.by_name("gamestate")?;
 
     let mut file = file;
     io::copy(&mut file, &mut writer)?;
     let stert = std::str::from_utf8(&writer)?;
 
-
     // let sav1 = super::save::Save::new(stert)?;
-
 
     panic!();
 
     Ok(())
 }
-
 
 // fn printer(mut temp: SaveIterator, depth: usize) {
 //     while let Some(data) = temp.next() {
@@ -66,15 +60,11 @@ pub fn tester() -> Result<(), Box<dyn Error>> {
 //     }
 // }
 
-
 // trait GetData {
 //     fn consume(&self, inp: SaveIterator) {}
 // }
 
-
 // struct SaveIterator<'a>(Box<dyn Iterator<Item = &'a str> + 'a>);
-
-
 
 // impl<'a> SaveIterator<'a> {
 //     fn new(data: &'a str, first: bool) -> Self {
@@ -122,9 +112,8 @@ pub fn tester() -> Result<(), Box<dyn Error>> {
 //     }
 // }
 
-
 pub fn wait() -> bool {
-    use std::io::{stdin,stdout,Write};
+    use std::io::{stdin, stdout, Write};
     println!("keep this? y/n ");
     let mut a = String::new();
     let _ = stdout().flush();
@@ -138,4 +127,3 @@ pub fn wait() -> bool {
         wait()
     }
 }
-

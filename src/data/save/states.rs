@@ -1,27 +1,25 @@
-
-
 use std::io;
 
 use super::pops::Pop;
 use crate::error::VicError;
 // use super::super::map::Map;
-use crate::scanner::{GetMapData, DataStructure, MapIterator, DataFormat};
+use crate::scanner::{DataFormat, DataStructure, GetMapData, MapIterator};
 
 #[derive(Debug, Default, Clone)]
 pub struct State {
     // id
-    id:         usize,
+    id: usize,
     // name
     template_name: String,
 
-    provinces:  Vec<usize>,
+    provinces: Vec<usize>,
     // capital province
-    capital:    Option<usize>,
+    capital: Option<usize>,
     // country id
-    country:    Option<usize>,
+    country: Option<usize>,
     // pop vec
-    pops:       Vec<Pop>,
-    empty:      bool,
+    pops: Vec<Pop>,
+    empty: bool,
 }
 
 impl State {
@@ -51,9 +49,13 @@ impl State {
     }
     /// returns (pops of selected culture, total population)
     pub fn culture_pop(&self, culture: usize) -> Result<(usize, usize), VicError> {
-        self.pops.iter()
-            .map(|p| p.size().and_then(|s| p.culture().and_then(|c| Ok((s, c == culture))))
-                .map(|(s, c)| (if c {s} else {0}, s)))
+        self.pops
+            .iter()
+            .map(|p| {
+                p.size()
+                    .and_then(|s| p.culture().and_then(|c| Ok((s, c == culture))))
+                    .map(|(s, c)| (if c { s } else { 0 }, s))
+            })
             .try_fold((0, 0), |a, b| b.and_then(|y| Ok((a.0 + y.0, a.1 + y.1))))
     }
     pub fn religion_pop(&self, religion: &str) -> Result<(usize, usize), VicError> {
@@ -71,15 +73,13 @@ impl State {
     }
 }
 
-
 impl GetMapData for State {
     fn consume_one(inp: DataStructure) -> Result<Self, VicError> {
-
         let id;
-        let mut t_name      = None;
+        let mut t_name = None;
         let mut provinces: Vec<usize> = Vec::new();
-        let mut capital   = None;
-        let mut country   = None;
+        let mut capital = None;
+        let mut country = None;
         let mut empty = false;
 
         let [itr_label, content_outer] = inp.itr_info()?;
@@ -89,13 +89,25 @@ impl GetMapData for State {
         for i in MapIterator::new(content_outer, DataFormat::Labeled) {
             match i.info() {
                 ["capital", content] => {
-                    capital = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);
+                    capital = Some(
+                        MapIterator::new(content, DataFormat::Single)
+                            .get_val()?
+                            .parse()?,
+                    );
                 }
                 ["country", content] => {
-                    country = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?);
+                    country = Some(
+                        MapIterator::new(content, DataFormat::Single)
+                            .get_val()?
+                            .parse()?,
+                    );
                 }
                 ["region", content] => {
-                    t_name = Some(MapIterator::new(content, DataFormat::Single).get_val()?.to_owned());
+                    t_name = Some(
+                        MapIterator::new(content, DataFormat::Single)
+                            .get_val()?
+                            .to_owned(),
+                    );
                     if let Some(a) = &mut t_name {
                         a.pop();
                         a.remove(0);
@@ -105,16 +117,21 @@ impl GetMapData for State {
                     for j in MapIterator::new(content, DataFormat::Labeled) {
                         match j.itr_info()? {
                             ["provinces", content_inner] => {
-                                let data: Vec<usize> = MapIterator::new(content_inner, DataFormat::MultiVal).get_vec()?.into_iter().map(|x| x.parse()).try_collect()?;
+                                let data: Vec<usize> =
+                                    MapIterator::new(content_inner, DataFormat::MultiVal)
+                                        .get_vec()?
+                                        .into_iter()
+                                        .map(|x| x.parse())
+                                        .try_collect()?;
                                 let mut ret = Vec::new();
-                                for y in 0..data.len()/2 {
-                                    for i in data[2*y]..data[2*y] + data[2*y+1] + 1 {
+                                for y in 0..data.len() / 2 {
+                                    for i in data[2 * y]..data[2 * y] + data[2 * y + 1] + 1 {
                                         ret.push(i);
                                     }
                                 }
                                 provinces.append(&mut ret);
                             }
-                            _ => panic!()
+                            _ => panic!(),
                         }
                     }
                 }
@@ -128,8 +145,7 @@ impl GetMapData for State {
         // println!("{:?}", capital);
         // println!("{:?}", provinces.len());
         // println!("{:?}", country);
-        if let Some(name)
-         =       t_name   {
+        if let Some(name) = t_name {
             Ok(Self {
                 id,
                 template_name: name,
@@ -137,7 +153,7 @@ impl GetMapData for State {
                 capital,
                 country,
                 pops: Vec::new(),
-                empty
+                empty,
             })
         } else if empty {
             Ok(Self {
@@ -150,8 +166,10 @@ impl GetMapData for State {
                 empty,
             })
         } else {
-            Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, "Incorrectly Initialized State"))))
+            Err(VicError::Other(Box::new(io::Error::new(
+                io::ErrorKind::Other,
+                "Incorrectly Initialized State",
+            ))))
         }
-
     }
 }

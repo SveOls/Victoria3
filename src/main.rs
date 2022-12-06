@@ -8,22 +8,18 @@ use std::path::PathBuf;
 use error::VicError;
 use image::Rgb;
 
-mod utilities;
-mod save;
 mod app;
-mod map;
-mod error;
 mod data;
 mod draw;
-mod testing;
+mod error;
 mod scanner;
+mod testing;
+mod utilities;
 mod wrappers;
 
 use draw::DrawMap;
 
 fn main() -> Result<(), VicError> {
-
-
     // let a = [50, 100, 200];
     // let max = 200;
     // let v = 200.0 / 255.0;
@@ -48,27 +44,35 @@ fn main() -> Result<(), VicError> {
     // println!("{}", test(a[2], 1.0));
     // panic!();
 
-
     app::run()?;
 
     panic!();
 
     let mut savelocation = PathBuf::new();
-    savelocation.push("/mnt/c/Users/sverr/Documents/Paradox Interactive/Victoria 3/");
+    savelocation.push("/mnt/c/Users/sverr/Documents/Paradox Interactive/Victoria 3/save games/observer_1836_01_01.v3");
     let mut gamelocation = PathBuf::new();
     gamelocation.push("/mnt/c/Steam/steamapps/common/Victoria 3/");
 
-
     println!("game analysis");
 
-    let data = map::Map::new(&gamelocation)?;
+    let data = data::map::Map::new(&gamelocation)?;
 
     // panic!();
 
     println!("save analysis");
     // use std::time::{Duration, Instant};
     // let start = Instant::now();
-    let  stuff = save::Save::new(&savelocation)?;
+    let stuff = data::save::Save::new(&savelocation)?;
+
+    // println!("{}", stuff.pops().flat_map(|(y, x)| x.map(|_| if y.country() == Some(5) { 1 } else { 0 })).sum::<usize>());
+    println!(
+        "{}",
+        stuff
+            .pops()
+            .flat_map(|(_, x)| x.filter_map(|y| y.size().ok()))
+            .sum::<usize>()
+    );
+    panic!();
     // let duration = start.elapsed();
     // println!("Time elapsed in expensive_function() is: {:?}", duration);
 
@@ -87,7 +91,6 @@ fn main() -> Result<(), VicError> {
     //     }
     // }
 
-
     let mut d = HashMap::new();
     let c = Some(Rgb::from([0x0, 0xFF, 0x7F]));
     for culture in stuff.cultures() {
@@ -100,7 +103,7 @@ fn main() -> Result<(), VicError> {
         }
         println!("{:?}", d);
         let max = d.values().fold(0f64, |a, &b| a.max(b));
-        d = d.into_iter().map(|(a, b)| (a, b/max)).collect();
+        d = d.into_iter().map(|(a, b)| (a, b / max)).collect();
         break;
     }
 
@@ -113,11 +116,21 @@ fn main() -> Result<(), VicError> {
 
     let max = d.values().fold(0f64, |a, &b| a.max(b));
     let min = d.values().fold(1f64, |a, &b| a.min(b));
-    d = d.into_iter().map(|(a, b)| (a, (b-min)/(max-min))).collect();
+    d = d
+        .into_iter()
+        .map(|(a, b)| (a, (b - min) / (max - min)))
+        .collect();
 
-    let mut t_d = d.iter().map(|(a, b)| (*a, *b)).collect::<Vec<(usize, f64)>>();
+    let mut t_d = d
+        .iter()
+        .map(|(a, b)| (*a, *b))
+        .collect::<Vec<(usize, f64)>>();
     t_d.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-    let t_d = t_d.iter().enumerate().map(|(a, (_, b))| (a as f64, *b)).collect::<Vec<(f64, f64)>>();
+    let t_d = t_d
+        .iter()
+        .enumerate()
+        .map(|(a, (_, b))| (a as f64, *b))
+        .collect::<Vec<(f64, f64)>>();
 
     // for i in &t_d {
     //     println!("{i:?}")
@@ -129,10 +142,17 @@ fn main() -> Result<(), VicError> {
     for test in 1..200 {
         variance = 0.0;
 
-        let t_2d = t_d.iter().enumerate().map(|(a, (_, b))| (a as f64, b.powf(test as f64 / 100.0))).collect::<Vec<(f64, f64)>>();
+        let t_2d = t_d
+            .iter()
+            .enumerate()
+            .map(|(a, (_, b))| (a as f64, b.powf(test as f64 / 100.0)))
+            .collect::<Vec<(f64, f64)>>();
         let maxxer = t_2d.iter().fold(0f64, |a, &b| a.max(b.1));
         let minner = t_2d.iter().fold(1f64, |a, &b| a.min(b.1));
-        let t_3d = t_2d.into_iter().map(|(a, b)| (a, (b-minner)/(maxxer-minner))).collect::<Vec<(f64, f64)>>();
+        let t_3d = t_2d
+            .into_iter()
+            .map(|(a, b)| (a, (b - minner) / (maxxer - minner)))
+            .collect::<Vec<(f64, f64)>>();
 
         // println!("{minner} {maxxer} to {}", t_3d[0].1);
 
@@ -140,7 +160,6 @@ fn main() -> Result<(), VicError> {
         //     println!("{i:?}");
         // }
         // panic!();
-
 
         for (x, y) in &t_3d {
             variance += (y - (x / (t_3d.len() - 1) as f64)).abs();
@@ -151,10 +170,11 @@ fn main() -> Result<(), VicError> {
         // println!(">{lowest:?}")
     }
 
-    let mut d = d.into_iter().map(|(a, b)| (a, b.powf(lowest.1))).collect::<HashMap<usize, f64>>();
+    let mut d = d
+        .into_iter()
+        .map(|(a, b)| (a, b.powf(lowest.1)))
+        .collect::<HashMap<usize, f64>>();
     // d.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
-
-
 
     // DrawMap::StrategicRegion.   draw(&all_maps, &data, None,         None, progress_frequency, None,          sea_color)?;
     // DrawMap::StateTemplate.     draw(&all_maps, &data, None,         None, progress_frequency, None,          sea_color)?;
@@ -164,7 +184,5 @@ fn main() -> Result<(), VicError> {
     // DrawMap::StateTemplateData. draw(&all_maps, &data, Some((d, c)), None, progress_frequency, Some(&stuff),  sea_color)?;
     // panic!();
 
-
     Ok(())
 }
-

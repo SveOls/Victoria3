@@ -1,27 +1,27 @@
-
 use image::Rgb;
 
 use std::path::PathBuf;
 
 use crate::error::VicError;
+use crate::scanner::{DataFormat, DataStructure, GetMapData, MapIterator};
 use crate::wrappers::ColorWrap;
-use crate::scanner::{GetMapData, DataStructure, MapIterator, DataFormat};
 
 #[derive(Debug, Default)]
 pub struct StateTemplate {
-    name:           String,
+    name: String,
     // naiive id first, as read from game files; followed by an assigned ID as per the logic of the game.
     // in game, state ID is assigned iteratively, independently of the ID in the game files.
-    id:             Option<(usize, usize)>,
-    subsistence_b:  Option<String>,
-    arable_r:       Option<Vec<String>>,
-    capped_r:       Option<Vec<(String, usize)>>,
-    provinces:      Option<Vec<Rgb<u8>>>,
-    arable_land:    Option<u32>,
-    discoverable:   Option<Vec<(Option<String>, Option<String>, Option<u32>, Option<u32>)>>,
+    id: Option<(usize, usize)>,
+    subsistence_b: Option<String>,
+    arable_r: Option<Vec<String>>,
+    capped_r: Option<Vec<(String, usize)>>,
+    provinces: Option<Vec<Rgb<u8>>>,
+    arable_land: Option<u32>,
+    discoverable: Option<Vec<(Option<String>, Option<String>, Option<u32>, Option<u32>)>>,
     // resources:      Option<Vec<(String, u16)>>,
-    ocean:          bool,
-    offset:         Option<usize>
+    ocean: bool,
+    offset: Option<usize>,
+    color: Option<Rgb<u8>>,
 }
 
 impl StateTemplate {
@@ -33,7 +33,7 @@ impl StateTemplate {
         if let Some(provinces) = &self.provinces {
             for &province in provinces {
                 if province == color {
-                    return true
+                    return true;
                 }
             }
         }
@@ -55,6 +55,9 @@ impl StateTemplate {
     pub fn id(&self) -> (usize, usize) {
         self.id.unwrap()
     }
+    pub fn color(&self) -> Option<Rgb<u8>> {
+        self.color
+    }
     pub fn set_offset(&mut self, offset: usize) {
         self.offset = Some(offset)
     }
@@ -75,21 +78,20 @@ impl StateTemplate {
     }
 }
 
-
 impl GetMapData for StateTemplate {
     fn new_vec(inp: PathBuf) -> Result<Vec<Self>, VicError> {
         Self::get_data_from(inp.join("game/map_data/state_regions/*.txt"))
     }
-    fn consume_one(inp:   DataStructure) -> Result<Self, VicError> {
-
+    fn consume_one(inp: DataStructure) -> Result<Self, VicError> {
         let mut t_id = None;
         let mut t_provinces = None;
         let mut arable_land = None;
         let mut arable_r = None;
         let mut capped_r = None;
-        let mut discoverable: Option<Vec<(Option<String>, Option<String>, Option<u32>, Option<u32>)>> = None;
+        let mut discoverable: Option<
+            Vec<(Option<String>, Option<String>, Option<u32>, Option<u32>)>,
+        > = None;
         let mut subsistence_b: Option<String> = None;
-
 
         let [itr_label, content_outer] = inp.itr_info()?;
 
@@ -97,7 +99,12 @@ impl GetMapData for StateTemplate {
         for data in MapIterator::new(content_outer, DataFormat::Labeled) {
             match data.itr_info()? {
                 ["id", content] => {
-                    t_id = Some((MapIterator::new(content, DataFormat::Single).get_val()?.parse()?, 0))
+                    t_id = Some((
+                        MapIterator::new(content, DataFormat::Single)
+                            .get_val()?
+                            .parse()?,
+                        0,
+                    ))
                 }
                 ["provinces", content] => {
                     let mut temp = Vec::new();
@@ -107,10 +114,18 @@ impl GetMapData for StateTemplate {
                     t_provinces = Some(temp)
                 }
                 ["arable_land", content] => {
-                    arable_land = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?)
+                    arable_land = Some(
+                        MapIterator::new(content, DataFormat::Single)
+                            .get_val()?
+                            .parse()?,
+                    )
                 }
                 ["subsistence_building", content] => {
-                    subsistence_b = Some(MapIterator::new(content, DataFormat::Single).get_val()?.to_owned());
+                    subsistence_b = Some(
+                        MapIterator::new(content, DataFormat::Single)
+                            .get_val()?
+                            .to_owned(),
+                    );
                     if let Some(a) = &mut subsistence_b {
                         a.pop();
                         a.remove(0);
@@ -122,7 +137,7 @@ impl GetMapData for StateTemplate {
                         let a = farms.val_info()?;
                         temp.push(a.to_owned())
                     }
-                    for i in &mut temp  {
+                    for i in &mut temp {
                         i.pop();
                         i.remove(0);
                     }
@@ -141,26 +156,42 @@ impl GetMapData for StateTemplate {
                     for resource in MapIterator::new(content, DataFormat::Labeled) {
                         match resource.itr_info()? {
                             ["type", content] => {
-                                tempinner.0 = Some(MapIterator::new(content, DataFormat::Single).get_val()?.to_owned());
+                                tempinner.0 = Some(
+                                    MapIterator::new(content, DataFormat::Single)
+                                        .get_val()?
+                                        .to_owned(),
+                                );
                                 if let Some(a) = &mut tempinner.0 {
                                     a.pop();
                                     a.remove(0);
                                 }
                             }
                             ["depleted_type", content] => {
-                                tempinner.1 = Some(MapIterator::new(content, DataFormat::Single).get_val()?.to_owned());
+                                tempinner.1 = Some(
+                                    MapIterator::new(content, DataFormat::Single)
+                                        .get_val()?
+                                        .to_owned(),
+                                );
                                 if let Some(a) = &mut tempinner.1 {
                                     a.pop();
                                     a.remove(0);
                                 }
                             }
                             ["undiscovered_amount", content] => {
-                                tempinner.2 = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?)
+                                tempinner.2 = Some(
+                                    MapIterator::new(content, DataFormat::Single)
+                                        .get_val()?
+                                        .parse()?,
+                                )
                             }
                             ["discovered_amount", content] => {
-                                tempinner.3 = Some(MapIterator::new(content, DataFormat::Single).get_val()?.parse()?)
+                                tempinner.3 = Some(
+                                    MapIterator::new(content, DataFormat::Single)
+                                        .get_val()?
+                                        .parse()?,
+                                )
                             }
-                            _ => panic!()
+                            _ => panic!(),
                         }
                     }
                     if let Some(a) = &mut discoverable {
@@ -173,20 +204,20 @@ impl GetMapData for StateTemplate {
             }
         }
 
-        if let (Some(id), Some(provinces))
-         =      (t_id, t_provinces) {
+        if let (Some(id), Some(provinces)) = (t_id, t_provinces) {
             // unimplemented!();
             Ok(Self {
                 id: Some(id),
                 name,
                 discoverable,
+                color: provinces.iter().cloned().next(),
                 provinces: Some(provinces),
                 arable_land,
                 arable_r,
                 capped_r,
                 subsistence_b,
                 ocean: false,
-                offset: None
+                offset: None,
             })
         } else {
             unimplemented!()

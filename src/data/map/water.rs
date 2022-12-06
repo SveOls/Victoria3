@@ -1,15 +1,14 @@
-
+use crate::error::VicError;
+use crate::scanner::{DataFormat, DataStructure, GetMapData, MapIterator};
 use image::Rgb;
 use std::path::PathBuf;
-use crate::error::VicError;
-use crate::scanner::{MapIterator, DataFormat, GetMapData, DataStructure};
 
 use crate::wrappers::ColorWrap;
 
 #[derive(Debug)]
 pub struct Water {
     lakes: Vec<Rgb<u8>>,
-    sea:   Vec<Rgb<u8>>
+    sea: Vec<Rgb<u8>>,
 }
 
 impl Water {
@@ -25,29 +24,31 @@ impl GetMapData for Water {
     fn new_vec(inp: PathBuf) -> Result<Vec<Self>, VicError> {
         Self::get_data_from(inp.join("game/map_data/*.map"))
     }
-    fn consume_one(_:   DataStructure) -> Result<Self, VicError> {
+    fn consume_one(_: DataStructure) -> Result<Self, VicError> {
         unreachable!()
     }
-    fn consume_vec(inp:   MapIterator, _: Option<&str>) -> Result<Vec<Self>, VicError> {
-
+    fn consume_vec(inp: MapIterator, _: Option<&str>) -> Result<Vec<Self>, VicError> {
         let mut t_lakes = None;
         let mut t_sea = None;
-
 
         for i in inp {
             match i.itr_info()? {
                 ["sea_starts", content] => {
                     t_sea = Some(
                         MapIterator::new(content, DataFormat::MultiVal)
-                            .get_vec()?.into_iter()//.inspect(|x| println!("{x}"))
-                            .map(|s| ColorWrap::to_colorwrap(s).map(|x| x.unravel())).try_collect()?
+                            .get_vec()?
+                            .into_iter() //.inspect(|x| println!("{x}"))
+                            .map(|s| ColorWrap::to_colorwrap(s).map(|x| x.unravel()))
+                            .try_collect()?,
                     );
                 }
                 ["lakes", content] => {
                     t_lakes = Some(
                         MapIterator::new(content, DataFormat::MultiVal)
-                            .get_vec()?.into_iter()//.inspect(|x| println!("{x}"))
-                            .map(|s| ColorWrap::to_colorwrap(s).map(|x| x.unravel())).try_collect()?
+                            .get_vec()?
+                            .into_iter() //.inspect(|x| println!("{x}"))
+                            .map(|s| ColorWrap::to_colorwrap(s).map(|x| x.unravel()))
+                            .try_collect()?,
                     );
                 }
                 _ => {}
@@ -56,12 +57,8 @@ impl GetMapData for Water {
 
         // println!("{t_lakes:?}\n\n{t_sea:?}\n\n");
 
-        if let (Some(lakes), Some(sea))
-        =     (t_lakes,     t_sea) {
-            Ok(vec![Self {
-                lakes,
-                sea
-            }])
+        if let (Some(lakes), Some(sea)) = (t_lakes, t_sea) {
+            Ok(vec![Self { lakes, sea }])
         } else {
             unimplemented!()
         }

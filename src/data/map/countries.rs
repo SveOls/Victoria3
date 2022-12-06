@@ -1,19 +1,14 @@
-
-
-
-use std::path::PathBuf;
 use crate::error::VicError;
-use crate::scanner::{GetMapData, DataStructure, MapIterator, DataFormat};
+use crate::scanner::{DataFormat, DataStructure, GetMapData, MapIterator};
+use std::path::PathBuf;
 
 use crate::wrappers::ColorWrap;
-
 
 #[derive(Debug)]
 pub struct Country {
     name: String,
     color: ColorWrap,
 }
-
 
 impl Country {
     pub fn new(inp: PathBuf) -> Result<Vec<Self>, VicError> {
@@ -27,13 +22,11 @@ impl Country {
     }
 }
 
-
 impl GetMapData for Country {
     fn new_vec(inp: PathBuf) -> Result<Vec<Self>, VicError> {
         Self::get_data_from(inp.join("game/common/country_definitions/*.txt"))
     }
-    fn consume_one(inp:   DataStructure) -> Result<Self, VicError> {
-
+    fn consume_one(inp: DataStructure) -> Result<Self, VicError> {
         let mut t_color = None;
 
         let [itr_label, content_outer] = inp.itr_info()?;
@@ -43,18 +36,16 @@ impl GetMapData for Country {
         for i in MapIterator::new(content_outer, DataFormat::Labeled) {
             match i.itr_info()? {
                 ["color", content] => {
-                    t_color = Some(ColorWrap::to_colorwrap(MapIterator::new(content, DataFormat::Single).get_val()?)?)
+                    t_color = Some(ColorWrap::to_colorwrap(
+                        MapIterator::new(content, DataFormat::Single).get_val()?,
+                    )?)
                 }
                 _ => {}
             }
         }
 
-        if let Some(color)
-         =     t_color {
-            Ok(Self {
-                name,
-                color
-            })
+        if let Some(color) = t_color {
+            Ok(Self { name, color })
         } else {
             unimplemented!()
         }

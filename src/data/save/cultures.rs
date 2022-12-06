@@ -1,18 +1,15 @@
-
-
-
-
-use crate::{scanner::{GetMapData, DataStructure, MapIterator, DataFormat}, error::VicError};
-
+use crate::{
+    error::VicError,
+    scanner::{DataFormat, DataStructure, GetMapData, MapIterator},
+};
 
 #[derive(Debug, Default)]
 pub struct Culture {
-    id:         usize,
-    name:       String,
+    id: usize,
+    name: String,
     // could find ID instead of string, but this way the save and game files are analyzed independently.
-    homelands:  Vec<String>,
+    homelands: Vec<String>,
 }
-
 
 impl Culture {
     pub fn id(&self) -> usize {
@@ -26,10 +23,8 @@ impl Culture {
     }
 }
 
-
 impl GetMapData for Culture {
     fn consume_one(inp: DataStructure) -> Result<Self, VicError> {
-
         let mut t_name = None;
         let mut homelands = Vec::new();
         let id;
@@ -41,10 +36,18 @@ impl GetMapData for Culture {
         for i in MapIterator::new(content_outer, DataFormat::Labeled) {
             match i.info() {
                 ["type", content] => {
-                    t_name           = Some(MapIterator::new(content, DataFormat::Single).get_val()?.to_owned());
+                    t_name = Some(
+                        MapIterator::new(content, DataFormat::Single)
+                            .get_val()?
+                            .to_owned(),
+                    );
                 }
                 ["core_states", content] => {
-                    homelands        = MapIterator::new(content, DataFormat::MultiVal).get_vec()?.into_iter().map(|x| x.to_owned()).collect();
+                    homelands = MapIterator::new(content, DataFormat::MultiVal)
+                        .get_vec()?
+                        .into_iter()
+                        .map(|x| x.to_owned())
+                        .collect();
                 }
                 [_] => unreachable!(),
                 _ => {}
@@ -54,7 +57,7 @@ impl GetMapData for Culture {
             Ok(Self {
                 id,
                 name,
-                homelands
+                homelands,
             })
         } else {
             panic!()

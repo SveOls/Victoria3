@@ -1,16 +1,14 @@
-
-
+use crate::{
+    error::VicError,
+    scanner::{DataFormat, DataStructure, GetMapData, MapIterator},
+};
 use std::path::PathBuf;
-use crate::{scanner::{GetMapData, DataStructure, MapIterator, DataFormat}, error::VicError};
-
-
 
 #[derive(Debug)]
 pub struct Trait {
-    name:       String,
-    heritage:   bool,
+    name: String,
+    heritage: bool,
 }
-
 
 impl Trait {
     pub fn new(inp: PathBuf) -> Result<Vec<Self>, VicError> {
@@ -21,13 +19,11 @@ impl Trait {
     }
 }
 
-
 impl GetMapData for Trait {
     fn new_vec(inp: PathBuf) -> Result<Vec<Self>, VicError> {
         Self::get_data_from(inp.join("game/common/discrimination_traits/*.txt"))
     }
-    fn consume_one(inp:   DataStructure) -> Result<Self, VicError> {
-
+    fn consume_one(inp: DataStructure) -> Result<Self, VicError> {
         let mut heritage = false;
 
         let [itr_label, content_outer] = inp.itr_info()?;
@@ -43,9 +39,6 @@ impl GetMapData for Trait {
             }
         }
 
-        Ok(Self {
-            name,
-            heritage
-        })
+        Ok(Self { name, heritage })
     }
 }

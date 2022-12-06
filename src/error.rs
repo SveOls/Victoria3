@@ -1,15 +1,26 @@
-
-use std::{error, fmt, num::{ParseFloatError, ParseIntError}, array::IntoIter};
+use std::{
+    array::IntoIter,
+    error, fmt,
+    num::{ParseFloatError, ParseIntError},
+};
 
 use fltk::prelude::FltkError;
 use glob::{GlobError, PatternError};
 use zip::result::ZipError;
 
-
 pub enum VicError {
     MapError(String),
     SaveError,
-    Other(Box<dyn error::Error + Send>)
+    Other(Box<dyn error::Error + Send>),
+}
+
+impl VicError {
+    pub fn temp() -> Self {
+        Self::SaveError
+    }
+    pub fn named(inp: &str) -> Self {
+        Self::MapError(inp.to_owned())
+    }
 }
 
 impl error::Error for VicError {}
