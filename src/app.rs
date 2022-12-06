@@ -70,14 +70,14 @@ pub fn run() -> Result<(), VicError> {
     let mut ubt = Button::new(20, 80, 100, 40, "Load Save");
     let mut utb = Button::new(20, 20, 100, 40, "Install Location");
 
-    let mut beit = CheckButton::new(380, 360, 100, 40, "light mode");
+    let mut light_mode = CheckButton::new(380, 360, 100, 40, "light mode");
     let mut boop = CheckButton::new(380, 420, 100, 40, "data");
 
     let mut choiceden = menu::Choice::new(550, 145, 150, 30, "Select denom");
     let mut choicenum = menu::Choice::new(550, 200, 150, 30, "Select numer");
     let mut choicecolor = menu::Choice::new(550, 255, 150, 30, "Select color");
     let mut choicelines = menu::Choice::new(550, 310, 150, 30, "Select lines");
-    choicenum.add_choice(" religion| culture");
+    choicenum.add_choice(" religion| culture| population");
     choiceden.add_choice(" None| population| area");
     choicecolor.add_choice(" None| Provinces| StateTemplate| SaveStates| SaveCountries");
     choicelines.add_choice(" None| Provinces| StateTemplate| SaveStates| SaveCountries");
@@ -114,10 +114,14 @@ pub fn run() -> Result<(), VicError> {
                 }
                 //
                 let (num, col) = match choicenum.value() {
-                    0 => info.religion(&btu.value()),
-                    1 => info.culture(&btu.value()),
+                    0 => info.religion(&btu.value())?,
+                    1 => info.culture(&btu.value())?,
+                    2 if light_mode.value()  => (info.population()?, Some(ColorWrap::from(image::Rgb::from([0x00,0x00,0x00])))),
+                    2 if !light_mode.value() => (info.population()?, Some(ColorWrap::from(image::Rgb::from([0xFF,0xFF,0xFF])))),
                     _ => return Err(VicError::temp()),
-                }?;
+                };
+                mapdrawer.set_numerator(Some(num));
+                mapdrawer.set_color(col);
                 match choicecolor.value() {
                     0 => mapdrawer.set_color_map(Coloring::None),
                     1 => mapdrawer.set_color_map(Coloring::Provinces),
@@ -140,9 +144,7 @@ pub fn run() -> Result<(), VicError> {
                     2 => mapdrawer.set_denominator(Some(info.area()?)),
                     _ => {}
                 }
-                mapdrawer.set_numerator(Some(num));
-                mapdrawer.set_color(col);
-                mapdrawer.darkmode(!beit.value());
+                mapdrawer.darkmode(!light_mode.value());
                 mapdrawer.set_sea_color(ColorWrap::from(image::Rgb::from([0, 100, 200])));
 
 
