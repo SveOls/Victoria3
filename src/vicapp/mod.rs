@@ -239,14 +239,37 @@ impl Info {
         load_type: DataTypes,
         sa: app::Sender<(Option<VicError>, Info, PathBuf)>,
     ) {
-        let mut dialog = match load_type {
-            DataTypes::Map  => NativeFileChooser::new(dbg!(NativeFileChooserType::BrowseDir)),
-            DataTypes::Save => NativeFileChooser::new(dbg!(NativeFileChooserType::BrowseFile)),
+        let mut dialog;
+        match load_type {
+            DataTypes::Map  => {
+                dialog = NativeFileChooser::new(NativeFileChooserType::BrowseDir);
+                let win = Path::new("c:/Steam/steamapps/common/Victoria 3").to_path_buf();
+                let lin = Path::new("/mnt/c/Steam/steamapps/common/Victoria 3").to_path_buf();
+                if lin.is_dir() {
+                    println!("1");
+                    dialog.set_directory(&lin.as_path()).unwrap();
+                } else if win.is_dir() {
+                    println!("2");
+                    dialog.set_directory(&win.as_path()).unwrap();
+                }
+            }
+            DataTypes::Save => {
+                dialog = NativeFileChooser::new(NativeFileChooserType::BrowseFile);
+                let win = Path::new("c:/Users/sverr/Documents/Paradox Interactive/Victoria 3/save games").to_path_buf();
+                let lin = Path::new("/mnt/c/Users/sverr/Documents/Paradox Interactive/Victoria 3/save games").to_path_buf();
+                if lin.is_dir() {
+                    println!("3");
+                    dialog.set_directory(&lin.as_path()).unwrap();
+                } else if win.is_dir() {
+                    println!("4");
+                    dialog.set_directory(&win.as_path()).unwrap();
+                }
+            }
         };
-        dialog.set_directory(&Path::new("C:")).unwrap();
         println!("{:?}", dialog.directory());
         println!("{:?}", dialog.error_message());
         println!("{:?}", dialog.filename());
+
         dialog.show();
         sa.send((
             self.load(dialog.filename().as_path(), load_type).err(),
