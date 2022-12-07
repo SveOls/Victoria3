@@ -239,15 +239,11 @@ impl Info {
         load_type: DataTypes,
         sa: app::Sender<(Option<VicError>, Info, PathBuf)>,
     ) {
-        println!("one");
         let mut dialog = match load_type {
-            DataTypes::Map => NativeFileChooser::new(NativeFileChooserType::BrowseDir),
-            DataTypes::Save => NativeFileChooser::new(NativeFileChooserType::BrowseFile),
+            DataTypes::Map  => NativeFileChooser::new(dbg!(NativeFileChooserType::BrowseDir)),
+            DataTypes::Save => NativeFileChooser::new(dbg!(NativeFileChooserType::BrowseFile)),
         };
-        println!("two");
-
         dialog.show();
-        println!("three");
         sa.send((
             self.load(dialog.filename().as_path(), load_type).err(),
             self,
