@@ -1,3 +1,5 @@
+use std::path::{PathBuf, Path};
+
 use fltk::{
     button::{Button, CheckButton},
     group::{Group, Pack, Tabs},
@@ -5,16 +7,20 @@ use fltk::{
     prelude::{GroupExt, InputExt, WidgetExt},
 };
 
+use crate::data::DataTypes;
+
 pub struct ScanTab {
     save_check: CheckButton,
     game_check: CheckButton,
     save_text: Output,
+    save_text_pathbuf: PathBuf,
     game_text: Output,
+    game_text_pathbuf: PathBuf,
 }
 
 impl ScanTab {
-    pub fn new(tab: &Tabs, s: fltk::app::Sender<usize>) -> Self {
-        let tab_box_height = 25; // height of box
+    pub fn new(tab: &Tabs, s: fltk::app::Sender<usize>, tab_box_height: i32) -> Self {
+        //let tab_box_height = height of box
         let button_width = 140; // width of button
         let button_height = 40; // height of button
         let checkbox_width = 20 + 0; // 20 is width of the actual box. The second number is space between checkbox and button.
@@ -99,15 +105,42 @@ impl ScanTab {
             save_check,
             game_check,
             save_text,
+            save_text_pathbuf: PathBuf::new(),
             game_text,
+            game_text_pathbuf: PathBuf::new(),
         }
     }
-    pub fn update_save(&mut self, label: &str, new_check: bool) {
-        self.save_check.set_checked(new_check);
-        self.save_text.set_value(label);
+    pub fn update(&mut self, datatype: DataTypes, label: PathBuf, new_check: bool) {
+        match datatype {
+            DataTypes::Map => {
+                self.game_check.set_checked(new_check);
+                self.game_text_pathbuf = label;
+                self.game_text.set_value(self.game_text_pathbuf.to_string_lossy().as_ref());
+            }
+            DataTypes::Save => {
+                self.save_check.set_checked(new_check);
+                self.save_text_pathbuf = label;
+                self.save_text.set_value(self.save_text_pathbuf.to_string_lossy().as_ref());
+                self.save_text_pathbuf.pop();
+            }
+        }
     }
-    pub fn update_game(&mut self, label: &str, new_check: bool) {
-        self.game_check.set_checked(new_check);
-        self.game_text.set_value(label);
+    pub fn path(&mut self, datatype: DataTypes) -> Option<&Path> {
+        match datatype {
+            DataTypes::Map => {
+                if dbg!(dbg!(self.game_text_pathbuf.as_path()) != Path::new("")) {
+                    Some(self.game_text_pathbuf.as_path())
+                } else {
+                    None
+                }
+            }
+            DataTypes::Save => {
+                if dbg!(dbg!(self.save_text_pathbuf.as_path()) != Path::new("")) {
+                    Some(self.save_text_pathbuf.as_path())
+                } else {
+                    None
+                }
+            }
+        }
     }
 }
