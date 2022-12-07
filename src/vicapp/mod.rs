@@ -243,7 +243,7 @@ impl Info {
             DataTypes::Map  => NativeFileChooser::new(dbg!(NativeFileChooserType::BrowseDir)),
             DataTypes::Save => NativeFileChooser::new(dbg!(NativeFileChooserType::BrowseFile)),
         };
-        dialog.set_directory(&Path::new("C:/")).unwrap();
+        dialog.set_directory(&Path::new("C:")).unwrap();
         println!("{:?}", dialog.directory());
         println!("{:?}", dialog.error_message());
         println!("{:?}", dialog.filename());
