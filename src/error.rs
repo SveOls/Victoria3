@@ -11,7 +11,7 @@ use zip::result::ZipError;
 pub enum VicError {
     MapError(String),
     SaveError,
-    Other(Box<dyn error::Error + Send>),
+    Other(Box<dyn error::Error + Send + Sync>),
 }
 
 impl VicError {
@@ -41,8 +41,8 @@ impl fmt::Debug for VicError {
     }
 }
 
-impl From<Box<dyn error::Error + Send>> for VicError {
-    fn from(error: Box<dyn error::Error + Send>) -> Self {
+impl From<Box<dyn error::Error + Send + Sync>> for VicError {
+    fn from(error: Box<dyn error::Error + Send + Sync>) -> Self {
         VicError::Other(error)
     }
 }

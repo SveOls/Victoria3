@@ -8,16 +8,14 @@ use std::path::PathBuf;
 use error::VicError;
 use image::Rgb;
 
-mod app;
 mod data;
 mod draw;
 mod error;
 mod scanner;
 mod testing;
 mod utilities;
+mod vicapp;
 mod wrappers;
-
-use draw::DrawMap;
 
 fn main() -> Result<(), VicError> {
     // let a = [50, 100, 200];
@@ -44,7 +42,7 @@ fn main() -> Result<(), VicError> {
     // println!("{}", test(a[2], 1.0));
     // panic!();
 
-    app::run()?;
+    vicapp::run()?;
 
     panic!();
 
@@ -55,7 +53,7 @@ fn main() -> Result<(), VicError> {
 
     println!("game analysis");
 
-    let data = data::map::Map::new(&gamelocation)?;
+    let _data = data::map::Map::new(&gamelocation)?;
 
     // panic!();
 
@@ -76,9 +74,9 @@ fn main() -> Result<(), VicError> {
     // let duration = start.elapsed();
     // println!("Time elapsed in expensive_function() is: {:?}", duration);
 
-    let sea_color = Some(Rgb::from([0, 100, 200]));
-    let progress_frequency = Some(300);
-    let all_maps = [false, true, true, true];
+    let _sea_color = Some(Rgb::from([0, 100, 200]));
+    let _progress_frequency = Some(300);
+    let _all_maps = [false, true, true, true];
 
     println!("map drawing");
 
@@ -91,24 +89,10 @@ fn main() -> Result<(), VicError> {
     //     }
     // }
 
-    let mut d = HashMap::new();
-    let c = Some(Rgb::from([0x0, 0xFF, 0x7F]));
-    for culture in stuff.cultures() {
-        if culture.id() != 11 {
-            continue;
-        }
-        for state in stuff.states() {
-            let a = state.religion_pop("jewish")?;
-            d.insert(state.id(), a.0 as f64 / a.1 as f64);
-        }
-        println!("{:?}", d);
-        let max = d.values().fold(0f64, |a, &b| a.max(b));
-        d = d.into_iter().map(|(a, b)| (a, b / max)).collect();
-        break;
-    }
+    // let c = Some(Rgb::from([0x0, 0xFF, 0x7F]));
 
     let mut d = HashMap::new();
-    for (i, area) in data.state_area() {
+    for (i, area) in _data.state_area() {
         if let Some(a) = i.arable_land() {
             d.insert(i.id().1, a as f64 / area as f64);
         }
@@ -170,10 +154,10 @@ fn main() -> Result<(), VicError> {
         // println!(">{lowest:?}")
     }
 
-    let mut d = d
-        .into_iter()
-        .map(|(a, b)| (a, b.powf(lowest.1)))
-        .collect::<HashMap<usize, f64>>();
+    // let mut d = d
+    //     .into_iter()
+    //     .map(|(a, b)| (a, b.powf(lowest.1)))
+    //     .collect::<HashMap<usize, f64>>();
     // d.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
 
     // DrawMap::StrategicRegion.   draw(&all_maps, &data, None,         None, progress_frequency, None,          sea_color)?;

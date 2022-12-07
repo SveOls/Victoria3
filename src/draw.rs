@@ -3,7 +3,7 @@ use super::data::save::Save;
 use super::utilities;
 
 use std::collections::{HashMap, HashSet};
-use std::default;
+// use std::default;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -615,7 +615,7 @@ impl DrawMap {
         //Zips a mutable iterator over a wite map with:
         //an iterator over neighboring pixels, folding into True if all pixels are equal, and False if they are not.
         {
-            let mut temp = blank.pixels_mut().zip(
+            let temp = blank.pixels_mut().zip(
                 mid.zip(above.zip(right.zip(below.zip(left))))
                     .map(|x| [x.0, x.1 .0, x.1 .1 .0, x.1 .1 .1 .0, x.1 .1 .1 .1])
                     .map(|x| x.iter().filter_map(|&x| x).collect::<HashSet<_>>().len() == 1),

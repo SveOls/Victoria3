@@ -10,10 +10,14 @@ use crate::wrappers::ColorWrap;
 use map::Map;
 use save::Save;
 
+pub enum DataTypes {
+    Map,
+    Save,
+}
+
 pub struct Info {
     map: Option<Map>,
-    saves: Vec<Save>,
-    cur_save: Option<usize>,
+    save: Option<Save>,
     drawer: MapDrawer,
 }
 
@@ -21,19 +25,21 @@ impl Info {
     pub fn new() -> Self {
         Self {
             map: None,
-            saves: Vec::new(),
-            cur_save: Some(0),
+            save: None,
             drawer: MapDrawer::default(),
         }
     }
-    pub fn load_map(&mut self, inp: &Path) -> Result<(), VicError> {
-        Ok(self.map = Some(Map::new(inp)?))
+    pub fn load(&mut self, inp: &Path, load_type: DataTypes) -> Result<(), VicError> {
+        match load_type {
+            DataTypes::Map => Ok(self.map = Some(Map::new(inp)?)),
+            DataTypes::Save => Ok(self.save = Some(Save::new(inp)?)),
+        }
     }
-    pub fn load_save(&mut self, inp: &Path) -> Result<(), VicError> {
-        Ok(self.saves.push(Save::new(inp)?))
+    pub fn clear_save(&mut self) {
+        self.save = None
     }
-    pub fn clear_saves(&mut self) {
-        self.saves = Vec::new()
+    pub fn clear_map(&mut self) {
+        self.save = None
     }
     pub fn test(
         &mut self,
@@ -44,12 +50,6 @@ impl Info {
         states: bool,
         black: bool,
     ) -> Result<(), VicError> {
-        self.cur_save = Some(0);
-        // println!("jewish");
-        // println!("{} {} {:?}", self.map.is_some(), self.saves.len(), self.cur_save);
-        // let (mapper, col) = self.religion("jewish")?;
-        // println!("jewish");
-
         let statenames = self
             .get_save()
             .unwrap()
@@ -57,12 +57,6 @@ impl Info {
             .map(|x| (x.id(), x.state().to_owned()))
             .collect::<HashMap<usize, String>>();
 
-        // for (key, culturepop) in self.population()? {
-        //     if mapper.get(&key).unwrap() == &0 {
-        //         continue;
-        //     }
-        //     println!("{:?}\t{}\t{}", statenames.get(&key), mapper.get(&key).unwrap(), culturepop)
-        // }
         let mut data2;
         if let Some(a) = cul {
             data2 = self.culture(&a)?;
@@ -153,13 +147,9 @@ impl Info {
         Ok(())
     }
     pub fn get_save(&self) -> Result<&Save, VicError> {
-        self.cur_save
-            .and_then(|s| self.saves.get(s))
-            .ok_or(VicError::MapError(format!(
-                "Info tried accessing save with size {:?} at index {:?}",
-                self.saves.len(),
-                self.cur_save
-            )))
+        self.save.as_ref().ok_or(VicError::MapError(format!(
+            "Info tried accessing save when save is none (save data not initialized)"
+        )))
     }
     pub fn get_map(&self) -> Result<&Map, VicError> {
         self.map.as_ref().ok_or(VicError::MapError(format!(
