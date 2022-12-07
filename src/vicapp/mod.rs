@@ -243,6 +243,9 @@ impl Info {
             DataTypes::Map  => NativeFileChooser::new(dbg!(NativeFileChooserType::BrowseDir)),
             DataTypes::Save => NativeFileChooser::new(dbg!(NativeFileChooserType::BrowseFile)),
         };
+        println!("{:?}", dialog.directory());
+        println!("{:?}", dialog.error_message());
+        println!("{:?}", dialog.filename());
         dialog.show();
         sa.send((
             self.load(dialog.filename().as_path(), load_type).err(),
