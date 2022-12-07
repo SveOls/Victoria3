@@ -26,7 +26,7 @@ mod scan_tab;
 pub fn run() -> Result<(), VicError> {
     // println!("{:?}", dirs::cache_dir());
 
-    let app = app::App::default().with_scheme(app::Scheme::Gtk);
+    let mut app = app::App::default().with_scheme(app::Scheme::Gtk);
     let mut info = Info::new();
     let mut mapdrawer = MapDrawer::default();
     // let mut game_dir: PathBuf;
@@ -161,20 +161,15 @@ pub fn run() -> Result<(), VicError> {
             Some(3) => {
                 info.clear_save();
 
-                let (sa, ra) = app::channel::<(Option<VicError>, Info, PathBuf)>();
 
                 // (info, _) = match temp_fn_name(NativeFileChooserType::BrowseFile)
 
-                thread::spawn(|| info.find_path(DataTypes::Save, sa));
+                // thread::spawn(|| info.find_path(DataTypes::Save, sa));
 
-                (info, _) = match 'outer: {
-                    while app.wait() {
-                        if let Some(c) = ra.recv() {
-                            break 'outer Ok(c);
-                        }
-                    }
-                    Err(VicError::temp())
-                }? {
+                // loop {
+
+                // }
+                (info, _) = match info.find_path2(DataTypes::Save, &mut app)? {
                     (Some(err), returned_info, new_save_path) => {
                         println!("{:?}", err);
                         tab_one.update_save(new_save_path.to_string_lossy().as_ref(), false);
@@ -184,7 +179,26 @@ pub fn run() -> Result<(), VicError> {
                         tab_one.update_save(c.to_string_lossy().as_ref(), false);
                         (returned_info, c)
                     }
-                };
+                }
+
+                // (info, _) = match 'outer: {
+                //     while app.wait() {
+                //         if let Some(c) = ra.recv() {
+                //             break 'outer Ok(c);
+                //         }
+                //     }
+                //     Err(VicError::temp())
+                // }? {
+                //     (Some(err), returned_info, new_save_path) => {
+                //         println!("{:?}", err);
+                //         tab_one.update_save(new_save_path.to_string_lossy().as_ref(), false);
+                //         (returned_info, new_save_path)
+                //     }
+                //     (None, returned_info, c) => {
+                //         tab_one.update_save(c.to_string_lossy().as_ref(), false);
+                //         (returned_info, c)
+                //     }
+                // };
             }
             Some(4) => {
                 info.clear_map();
@@ -275,6 +289,69 @@ impl Info {
             self.load(dialog.filename().as_path(), load_type).err(),
             self,
             dialog.filename(),
+        ));
+    }
+    pub fn find_path2(
+        mut self,
+        load_type: DataTypes,
+        app: &mut app::App,
+    ) -> Result<(Option<VicError>, Info, PathBuf), VicError> {
+
+        let mut dialog;
+        match load_type {
+            DataTypes::Map  => {
+                dialog = NativeFileChooser::new(NativeFileChooserType::BrowseDir);
+                let win = Path::new("c:/Steam/steamapps/common/Victoria 3").to_path_buf();
+                let lin = Path::new("/mnt/c/Steam/steamapps/common/Victoria 3").to_path_buf();
+                if lin.is_dir() {
+                    println!("1");
+                    dialog.set_directory(&lin.as_path()).unwrap();
+                } else if win.is_dir() {
+                    println!("2");
+                    dialog.set_directory(&win.as_path()).unwrap();
+                }
+            }
+            DataTypes::Save => {
+                dialog = NativeFileChooser::new(NativeFileChooserType::BrowseFile);
+                let win = Path::new("c:/Users/sverr/Documents/Paradox Interactive/Victoria 3/save games").to_path_buf();
+                let lin = Path::new("/mnt/c/Users/sverr/Documents/Paradox Interactive/Victoria 3/save games").to_path_buf();
+                if lin.is_dir() {
+                    println!("3");
+                    dialog.set_directory(&lin.as_path()).unwrap();
+                } else if win.is_dir() {
+                    println!("4");
+                    dialog.set_directory(&win.as_path()).unwrap();
+                }
+            }
+        };
+        println!("{:?}", dialog.directory());
+        println!("{:?}", dialog.error_message());
+        println!("{:?}", dialog.filename());
+
+        dialog.show();
+
+
+
+        let (sa, ra) = app::channel::<(Option<VicError>, Info)>();
+
+        thread::spawn( {
+            let t = dialog.filename();
+            move || self.tempname(load_type, t, sa)
+        });
+
+        'outer: {
+            while app.wait() {
+                if let Some(c) = ra.recv() {
+                    break 'outer Ok((c.0, c.1, dialog.filename()));
+                }
+            }
+            Err(VicError::temp())
+        }
+    }
+    fn tempname(mut self, load_type: DataTypes, loc: PathBuf, sa: app::Sender<(Option<VicError>, Info)>) {
+        sa.send((
+            self.load(loc.as_path(), load_type).err(),
+            self
         ));
     }
 }
