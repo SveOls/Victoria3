@@ -40,6 +40,7 @@ pub struct MapDrawer {
     data_color: Option<ColorWrap>,
     provice_map_path: Option<PathBuf>,
     default_color: ColorWrap,
+    sea_province_borders: bool,
     scale_fn: Option<(fn(f64, f64) -> f64, f64)>,
     /// memoization of province color to its color and owner. Separated options are for cases where
     /// the color is erased, but the other data is still relevant.
@@ -50,6 +51,9 @@ impl MapDrawer {
     pub fn resize(&mut self, inp: f64) {
         self.resize = Some(inp)
     }
+    pub fn sea_province_borders(&mut self, inp: bool) {
+        self.sea_province_borders = inp
+    }
     /// generally a religion, culture, or something else.
     pub fn set_numerator(&mut self, inp: Option<HashMap<usize, usize>>) {
         self.numerator = inp
@@ -58,8 +62,8 @@ impl MapDrawer {
     pub fn set_denominator(&mut self, inp: Option<HashMap<usize, usize>>) {
         self.denominator = inp
     }
-    pub fn set_sea_color(&mut self, inp: ColorWrap) {
-        self.sea_color = Some(inp)
+    pub fn set_sea_color(&mut self, inp: Option<ColorWrap>) {
+        self.sea_color = inp
     }
     pub fn set_data_scale(&mut self, inp: Option<(fn(f64, f64) -> f64, f64)>) {
         self.scale_fn = inp
@@ -91,15 +95,29 @@ impl MapDrawer {
             self.data_color = Some(self.default_color.inverse())
         } else if stretch {
             let temp = self.default_color;
-            self.data_color.map(|mut x| x.stretch(&temp));
+            self.data_color = self.data_color.map(|x| x.stretch(&temp));
         }
     }
 
     pub fn draw(&mut self, info: &Info, save_to: PathBuf, map_data: bool) -> Result<(), VicError> {
-        self.draw_map_coloring(info).unwrap();
-        self.draw_lines_coloring(info).unwrap();
+
+        let mut temp = Coloring::StateTemplates;
+        std::mem::swap(&mut temp, &mut self.color_map);
+        self.draw_map_coloring(info)?;
+        std::mem::swap(&mut temp, &mut self.color_map);
+
+        self.draw_map_coloring(info)?;
+        self.draw_lines_coloring(info)?;
 
         let mut saver = self.premade_color.get(&self.color_map).unwrap().clone();
+
+        if let Some(sea_color) = self.sea_color {
+            for pix in saver.pixels_mut() {
+                if self.owners.get(pix).map_or(false, |x| x.is_none()) {
+                    *pix = sea_color.unravel();
+                }
+            }
+        }
 
         if map_data {
             let mut data: HashMap<usize, f64>;
@@ -177,7 +195,7 @@ impl MapDrawer {
             saver
                 .pixels_mut()
                 .zip(self.premade_lines.get(&self.lines).unwrap().pixels())
-                .filter(|&(_, &y)| y == Rgb::from([0, 0, 0]))
+                .filter(|&(_, &y)| (y == Rgb::from([0, 0, 0])) || (y == Rgb::from([127, 127, 127]) && self.sea_province_borders))
                 .for_each(|(x, _)| *x = Rgb::from([0, 0, 0]))
         } else {
         }
@@ -216,15 +234,20 @@ impl MapDrawer {
                         ),
                 )
                 .map(|x| [x.0, x.1 .0, x.1 .1 .0, x.1 .1 .1 .0, x.1 .1 .1 .1])
-                .map(|x| x.iter().filter_map(|&x| x).collect::<HashSet<_>>().len() == 1);
+                .map(|x| (x.iter().filter_map(|&x| x).fold(true, |a, b| a && self.owners.get(b).map(|y| y.is_none()).unwrap_or(false)), x))
+                .map(|(a, x)| (a, x.iter().filter_map(|&x| x).collect::<HashSet<_>>().len() == 1));
 
         let mut blank = base_map.new_empty(ColorWrap::from(Rgb::from([0xFF, 0xFF, 0xFF])));
 
         let temp = blank.pixels_mut().zip(cross);
 
-        for (pixel, condition) in temp {
+        for (pixel, (ocean, condition)) in temp {
             if !condition {
-                *pixel = Rgb::from([0x00, 0x00, 0x00])
+                if ocean {
+                    *pixel = Rgb::from([0x7F, 0x7F, 0x7F])
+                } else {
+                    *pixel = Rgb::from([0x00, 0x00, 0x00])
+                }
             }
         }
 
@@ -299,11 +322,11 @@ impl MapDrawer {
                         });
                         self.owner_inserter(color, updatedcolor);
                     } else {
-                        updatedcolor = self.sea_color.map(|x| x.unravel()).unwrap_or(*color);
+                        updatedcolor = *color;
                         self.owners.insert(*color, None);
                     }
                 }
-                None => updatedcolor = self.sea_color.map(|x| x.unravel()).unwrap_or(*color),
+                None => updatedcolor = *color,
             }
             *color = updatedcolor;
         }

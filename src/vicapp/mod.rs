@@ -38,7 +38,7 @@ pub fn run() -> Result<(), VicError> {
 
     let (s, r) = app::channel::<usize>();
 
-    let mut wind = Window::default().with_size(720, 480);
+    let mut wind = Window::default().with_size(1280, 720);
 
     let tab_edge_buffer = 5; // buffer between edge of window and tab box
     let tab = Tabs::default()
@@ -71,6 +71,8 @@ pub fn run() -> Result<(), VicError> {
             Some(105) => draw_tab.check_custom_color(true),
             Some(106) => draw_tab.check_default_color(false), // from custom_default textbox callback
             Some(107) => draw_tab.check_default_color(true),
+            Some(108) => draw_tab.check_custom_watercolor(false), // from custom_default textbox callback
+            Some(109) => draw_tab.check_custom_watercolor(true),
             Some(200) => {
                 info.clear(DataTypes::Save);
                 (info, _) = match info.find_path(DataTypes::Save, &mut app, &mut scan_tab)? {

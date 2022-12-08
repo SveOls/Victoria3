@@ -37,6 +37,11 @@ pub struct DrawTab {
     custom_default_check: CheckButton,
     valscale_num: FloatInput,
     choice_valscale: Choice,
+    choice_watercolor: Choice,
+    custom_watercolor: Input,
+    custom_watercolor_check: CheckButton,
+    choice_waterlines: Choice,
+    status: Output
 }
 
 impl DrawTab {
@@ -45,8 +50,11 @@ impl DrawTab {
         let selection_separation = 15;
         let edge_buffer = 10;
         let label_height = 15; // note: if changed from align::top, things might look weird. take care.
-        let selection_width = 180;
+        let selection_width = 200;
         let checkbox_width = 20;
+        let button_width = 200;
+        let button_separation = 10;
+        let button_height = 60;
         let label_align_choice = Align::Top;
         // let label_align_check = Align::Center;
 
@@ -55,15 +63,6 @@ impl DrawTab {
             .with_size(tab.w(), tab.h() - tab_box_height)
             .with_label("Drawing \t");
 
-        // let mut draw_buttons = Pack::default()
-        //     .with_pos(
-        //         draw_group.x() + edge_buffer,
-        //         draw_group.y() + edge_buffer + label_height,
-        //     )
-        //     .with_size(selection_width, draw_group.h() - 2 * edge_buffer);
-
-        // draw_buttons.set_spacing(label_height + selection_separation);
-
         let mut t_y = draw_group.y() + edge_buffer + label_height;
 
         let mut choicecolor = Choice::default()
@@ -71,14 +70,43 @@ impl DrawTab {
             .with_size(selection_width, selection_height)
             .with_label("Select color")
             .with_align(label_align_choice);
-        t_y += selection_separation + selection_height + label_height;
+        t_y += selection_separation + choicecolor.h() + label_height;
+
+        let mut choice_watercolor = Choice::default()
+            .with_pos(draw_group.x() + edge_buffer, t_y)
+            .with_size(selection_width, selection_height)
+            .with_label("Select water color")
+            .with_align(label_align_choice);
+        let mut custom_watercolor = Input::default()
+            .with_pos(
+                draw_group.x() + edge_buffer + selection_width + selection_separation,
+                t_y,
+            )
+            .with_size(selection_width - checkbox_width, selection_height)
+            .with_label("custom sea color")
+            .with_align(label_align_choice);
+        let mut custom_watercolor_check = CheckButton::default()
+            .with_pos(
+                draw_group.x() + edge_buffer + 2 * selection_width + selection_separation
+                    - checkbox_width,
+                t_y,
+            )
+            .with_size(checkbox_width, selection_height);
+        t_y += selection_separation + choice_watercolor.h() + label_height;
 
         let mut choicelines = Choice::default()
             .with_pos(draw_group.x() + edge_buffer, t_y)
             .with_size(selection_width, selection_height)
             .with_label("Select lines")
             .with_align(label_align_choice);
-        t_y += selection_separation + selection_height + label_height;
+        t_y += selection_separation + choicelines.h() + label_height;
+
+        let mut choice_waterlines = Choice::default()
+            .with_pos(draw_group.x() + edge_buffer, t_y)
+            .with_size(selection_width, selection_height)
+            .with_label("Sea Province Line")
+            .with_align(label_align_choice);
+        t_y += selection_separation + choice_waterlines.h() + label_height;
 
         let mut draw_data = Choice::default()
             .with_pos(draw_group.x() + edge_buffer, t_y)
@@ -100,7 +128,7 @@ impl DrawTab {
                 t_y,
             )
             .with_size(checkbox_width, selection_height);
-        t_y += selection_separation + selection_height + label_height;
+        t_y += selection_separation + draw_data.h() + label_height;
 
         let mut default_color = Choice::default()
             .with_pos(draw_group.x() + edge_buffer, t_y)
@@ -122,7 +150,7 @@ impl DrawTab {
                 t_y,
             )
             .with_size(checkbox_width, selection_height);
-        t_y += selection_separation + selection_height + label_height;
+        t_y += selection_separation + default_color.h() + label_height;
 
         let mut choicenum = Choice::default()
             .with_pos(draw_group.x() + edge_buffer, t_y)
@@ -138,14 +166,14 @@ impl DrawTab {
             .with_size(selection_width, selection_height)
             .with_label("name (if applicable)")
             .with_align(label_align_choice);
-        t_y += selection_separation + selection_height + label_height;
+        t_y += selection_separation + choicenum.h() + label_height;
 
         let mut choiceden = Choice::default()
             .with_pos(draw_group.x() + edge_buffer, t_y)
             .with_size(selection_width, selection_height)
             .with_label("scale to")
             .with_align(label_align_choice);
-        t_y += selection_separation + selection_height + label_height;
+        t_y += selection_separation + choiceden.h() + label_height;
 
 
         let mut choice_valscale = Choice::default()
@@ -163,89 +191,119 @@ impl DrawTab {
             .with_label("num (if applicable)")
             .with_align(label_align_choice);
 
-        // let light_mode = CheckButton::default()
-        //     .with_size(selection_width, (selection_height - label_height).min(20))
-        //     .with_label("light mode")
-        //     .with_align(label_align_check);
-        // let draw_data = CheckButton::default()
-        //     .with_size(selection_width, (selection_height - label_height).min(20))
-        //     .with_label("data mode")
-        //     .with_align(label_align_check);
-
         // draw_buttons.end();
 
-        let mut engage = Button::new(560, 420, 160, 40, "Draw");
-        let mut quickdraw_states = Button::new(560, 20, 160, 40, "(fast) Draw States");
-        let mut quickdraw_countries = Button::new(560, 80, 160, 40, "(fast) Draw Countries");
+        let mut t_y = draw_group.y() + edge_buffer;
+
+        let mut engage = Button::default()
+            .with_pos(draw_group.x() + draw_group.w() - edge_buffer - button_width, t_y)
+            .with_size(button_width, button_height)
+            .with_label("Draw");
+        t_y += button_separation + engage.h();
+        let mut quickdraw_states = Button::default()
+            .with_pos(draw_group.x() + draw_group.w() - edge_buffer - button_width, t_y)
+            .with_size(button_width, button_height)
+            .with_label("(fast) Draw States");
+        t_y += button_separation + quickdraw_states.h();
+        let mut quickdraw_countries = Button::default()
+            .with_pos(draw_group.x() + draw_group.w() - edge_buffer - button_width, t_y)
+            .with_size(button_width, button_height)
+            .with_label("(fast) Draw Countries");
+
+        t_y += button_separation + quickdraw_states.h();
+        let mut status = Output::default()
+            .with_pos(draw_group.x() + draw_group.w() - edge_buffer - button_width, t_y)
+            .with_size(button_width, button_height);
+
+        // let mut quickdraw_states = Button::new(560, 20, 160, 40, "(fast) Draw States");
+        // let mut quickdraw_countries = Button::new(560, 80, 160, 40, "(fast) Draw Countries");
 
         draw_group.end();
 
-        // ---------------
-        // Coloring Settings
-        // ---------------
+        // -------------------
+        // Settings
+        // -------------------
         {
-            choicecolor.add_choice(" None| Provinces| StateTemplate| SaveStates| SaveCountries");
-            choicecolor.set_value(3);
-            // -----
-            choicelines.add_choice(" None| Provinces| StateTemplate| SaveStates| SaveCountries");
-            choicelines.set_value(3);
+            // ---------------
+            // Coloring Settings
+            // ---------------
+            {
+                choicecolor.add_choice(" None| Provinces| StateTemplate| SaveStates| SaveCountries");
+                choicecolor.set_value(3);
+                // -----
+                choice_watercolor.add_choice(" Default| Custom| As Land");
+                choice_watercolor.set_value(0);
+                choice_watercolor.emit(s, 103);
+                //
+                custom_watercolor.set_trigger(CallbackTrigger::Changed);
+                custom_watercolor.set_callback(move |x| Self::col_box_callback(x, s, 108));
+                //
+                custom_watercolor_check.set_callback(read_only_checkbutton);
+                // -----
+                choicelines.add_choice(" None| Provinces| StateTemplate| SaveStates| SaveCountries");
+                choicelines.set_value(3);
+                //
+                choice_waterlines.add_choice(" Yes| No");
+                choice_waterlines.set_value(1);
+            }
+            // ---------------
+            // Data-Color Settings
+            // ---------------
+            {
+                draw_data.add_choice(" yes (default color)| yes (amplified default)| yes (custom color)| no");
+                draw_data.set_value(3);
+                draw_data.emit(s, 103);
+                //
+                custom_color.set_trigger(CallbackTrigger::Changed);
+                custom_color.set_callback(move |x| Self::col_box_callback(x, s, 104));
+                //
+                custom_color_check.set_callback(read_only_checkbutton);
+                // -----
+                default_color.add_choice(" white| black| custom");
+                default_color.set_value(0);
+                default_color.emit(s, 103);
+                //
+                custom_default.set_trigger(CallbackTrigger::Changed);
+                custom_default.set_callback(move |x| Self::col_box_callback(x, s, 106));
+                //
+                custom_default_check.set_callback(read_only_checkbutton);
+            }
+            // ---------------
+            // Data Settings
+            // ---------------
+            {
+                choicenum.add_choice(" religion| culture| population");
+                choicenum.set_value(0);
+                choicenum.emit(s, 103); // emit 103 => call DrawTab.lock()
+                //
+                input_name.set_trigger(CallbackTrigger::Changed);
+                input_name.set_callback(move |x| x.set_value(&x.value())); // allows using .do_callback() for updating textcolor
+                // -----
+                choiceden.add_choice(" total| population| area");
+                choiceden.set_value(0);
+                // -----
+                choice_valscale.add_choice(" none| polynomial_n");
+                choice_valscale.set_value(0);
+                choice_valscale.emit(s, 103);
+                //
+                valscale_num.set_trigger(CallbackTrigger::Changed);
+                valscale_num.set_callback(move |x| x.set_value(&x.value())); // allows using .do_callback() for updating textcolor
+            }
+            // ---------------
+            // Draw Settings
+            // ---------------
+            {
+                engage.emit(s, 100);
+                // -----
+                quickdraw_countries.emit(s, 101);
+                // -----
+                quickdraw_states.emit(s, 102);
+                // -----
+                status.set_value("idle");
+            }
+            // ---------------
         }
-        // ---------------
-        // Data-Color Settings
-        // ---------------
-        {
-            draw_data.add_choice(" yes (default color)| yes (amplified default)| yes (custom color)| no");
-            draw_data.set_value(3);
-            draw_data.emit(s, 103);
-            //
-            custom_color.set_trigger(CallbackTrigger::Changed);
-            custom_color.set_callback(move |x| Self::col_box_callback(x, s, 104));
-            //
-            custom_color_check.set_callback(read_only_checkbutton);
-            // -----
-            default_color.add_choice(" white| black| custom");
-            default_color.set_value(0);
-            default_color.emit(s, 103);
-            //
-            custom_default.set_trigger(CallbackTrigger::Changed);
-            custom_default.set_callback(move |x| Self::col_box_callback(x, s, 106));
-            //
-            custom_default_check.set_callback(read_only_checkbutton);
-        }
-        // ---------------
-        // Data Settings
-        // ---------------
-        {
-            choicenum.add_choice(" religion| culture| population");
-            choicenum.set_value(0);
-            choicenum.emit(s, 103); // emit 103 => call DrawTab.lock()
-            //
-            input_name.set_trigger(CallbackTrigger::Changed);
-            input_name.set_callback(move |x| x.set_value(&x.value())); // allows using .do_callback() for updating textcolor
-            // -----
-            choiceden.add_choice(" total| population| area");
-            choiceden.set_value(0);
-            // -----
-            choice_valscale.add_choice(" none| polynomial_n");
-            choice_valscale.set_value(0);
-            choice_valscale.emit(s, 103);
-            //
-            valscale_num.set_trigger(CallbackTrigger::Changed);
-            valscale_num.set_callback(move |x| x.set_value(&x.value())); // allows using .do_callback() for updating textcolor
-        }
-        // ---------------
-        // Launch Button Settings
-        // ---------------
-        {
-            engage.emit(s, 100);
-        }
-        // ---------------
-        // Quickdraw Settings
-        // ---------------
-        {
-            quickdraw_countries.emit(s, 101);
-            quickdraw_states.emit(s, 102);
-        }
+        // -------------------
 
         let mut ret = Self {
             draw_data,
@@ -261,6 +319,11 @@ impl DrawTab {
             custom_default_check,
             valscale_num,
             choice_valscale,
+            choice_watercolor,
+            choice_waterlines,
+            custom_watercolor,
+            custom_watercolor_check,
+            status
         };
         ret.lock();
         ret
@@ -286,6 +349,13 @@ impl DrawTab {
         } else {
             self.input_name.set_readonly(true);
             self.input_name.set_text_color(Color::from_hex(0x999999));
+        }
+        if let 1 = self.choice_watercolor.value() {
+            self.custom_watercolor.set_readonly(false);
+            self.custom_watercolor.set_text_color(Color::from_hex(0x000000));
+        } else {
+            self.custom_watercolor.set_readonly(true);
+            self.custom_watercolor.set_text_color(Color::from_hex(0x999999));
         }
         if let 2 = self.draw_data.value() {
             self.custom_color.set_readonly(false);
@@ -316,12 +386,16 @@ impl DrawTab {
         self.input_name.do_callback();
         self.custom_default.do_callback();
         self.custom_color.do_callback();
+        self.custom_watercolor.do_callback();
     }
     pub fn check_custom_color(&mut self, to: bool) {
         self.custom_color_check.set_value(to)
     }
     pub fn check_default_color(&mut self, to: bool) {
         self.custom_default_check.set_value(to)
+    }
+    pub fn check_custom_watercolor(&mut self, to: bool) {
+        self.custom_watercolor_check.set_value(to)
     }
     fn temp_fix_savestates(&mut self) {
         if self.is_data().unwrap() {
@@ -346,9 +420,13 @@ impl DrawTab {
         mut mapdrawer: MapDrawer,
         app: &mut App,
     ) -> Result<(Option<VicError>, Info, MapDrawer), VicError> {
+
+        self.status.set_value("preparing draw settings");
         if let Err(e) = self.draw_inner(&info, &mut mapdrawer) {
+            self.status.set_value("failed at preparing data");
             return Ok((Some(e), info, mapdrawer));
         }
+        self.status.set_value("drawing map...");
 
         let (s, r) = app::channel::<(Option<VicError>, Info, MapDrawer)>();
 
@@ -370,7 +448,7 @@ impl DrawTab {
 
         while app.wait() {
             if let Some(a) = r.recv() {
-                println!("draw complete");
+                self.status.set_value("idle");
                 return Ok(a);
             }
         }
@@ -396,14 +474,28 @@ impl DrawTab {
             4 => mapdrawer.set_lines(Coloring::SaveCountries),
             _ => return Err(VicError::temp()),
         }
-        mapdrawer.set_sea_color(ColorWrap::to_colorwrap("x0064C8")?);
+        match self.choice_watercolor.value() {
+            0 => mapdrawer.set_sea_color(Some(ColorWrap::to_colorwrap("x0064C8")?)),
+            1 if self.custom_watercolor_check.is_checked() => {
+                mapdrawer.set_sea_color(Some(ColorWrap::to_colorwrap(&self.custom_watercolor.value())?))
+            }
+            2 => mapdrawer.set_sea_color(None),
+            _ => return Err(VicError::temp()),
+        }
+        match self.choice_waterlines.value() {
+            0 => mapdrawer.sea_province_borders(true),
+            1 => mapdrawer.sea_province_borders(false),
+            _ => return Err(VicError::temp()),
+        }
         if !self.is_data()? {
             return Ok(())
         }
         match self.default_color.value() {
             0 => mapdrawer.darkmode(ColorWrap::to_colorwrap("xFFFFFF")?),
             1 => mapdrawer.darkmode(ColorWrap::to_colorwrap("x000000")?),
-            2 => mapdrawer.darkmode(ColorWrap::to_colorwrap(&self.custom_default.value())?),
+            2 if self.custom_default_check.is_checked() => {
+                mapdrawer.darkmode(ColorWrap::to_colorwrap(&self.custom_default.value())?)
+            }
             _ => return Err(VicError::temp()),
         }
         let (num, col) = match self.choicenum.value() {
@@ -422,7 +514,9 @@ impl DrawTab {
         match self.draw_data.value() {
             0 => mapdrawer.set_color(col),
             1 => mapdrawer.set_color(col),
-            2 => mapdrawer.set_color(Some(ColorWrap::to_colorwrap(&self.custom_color.value())?)),
+            2 if self.custom_color_check.is_checked() => {
+                mapdrawer.set_color(Some(ColorWrap::to_colorwrap(&self.custom_color.value())?))
+            }
             3 => return Ok(()),
             _ => return Err(VicError::temp()),
         }
