@@ -109,6 +109,46 @@ impl ColorWrap {
             ColorWrap::Rgb(a) => a,
         }
     }
+    pub fn stretch(&mut self, rhs: &ColorWrap) {
+        let min = self.unravel().0.iter().cloned().min().unwrap() as f64;
+        let max = self.unravel().0.iter().cloned().max().unwrap() as f64;
+        let minscale = |x: u8| -> u8 {
+            x - ((255.0 - x as f64) * (min)/(255.0 - min)) as u8
+        };
+        let maxscale = |x: u8| -> u8 {
+            x + (x as f64 * (255.0 - max)/(max)) as u8
+        };
+        println!("{:?}", self.unravel().0.into_iter().map(maxscale).collect::<Vec<_>>());
+        println!("{:?}", self.unravel().0.into_iter().map(minscale).collect::<Vec<_>>());
+        let [a, b, c] = rhs.unravel().0;
+        // let candidate_a =
+
+
+
+
+
+
+
+
+
+
+    }
+    // 0 0 0 -> 1 2 3 ==> 0 0 0 -> 50 100 150
+    // 255 255 255 -> 50 100 150 ====> 255 255 255 ->
+    //
+    //
+    //
+    pub fn inverse(&self) -> Self {
+        let mut ret = self.unravel().0;
+        for i in 0..3 {
+            if 0xFF - ret[i] > ret[i] {
+                ret[i] = 0xFF
+            } else {
+                ret[i] = 0x00
+            }
+        }
+        Self::Rgb(Rgb(ret))
+    }
     pub fn scale_to(&self, to: &Self, scale: f64) -> Self {
         match (self, to) {
             (ColorWrap::Rgb(_), ColorWrap::Rgb(_)) => ColorWrap::Rgb(Rgb::from([

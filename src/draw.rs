@@ -1,5 +1,3 @@
-
-
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
@@ -42,6 +40,7 @@ pub struct MapDrawer {
     data_color: Option<ColorWrap>,
     provice_map_path: Option<PathBuf>,
     default_color: ColorWrap,
+    scale_fn: Option<(fn(f64, f64) -> f64, f64)>,
     /// memoization of province color to its color and owner. Separated options are for cases where
     /// the color is erased, but the other data is still relevant.
     owners: HashMap<Rgb<u8>, Option<([Option<Rgb<u8>>; 3], Option<[usize; 2]>)>>,
@@ -62,15 +61,14 @@ impl MapDrawer {
     pub fn set_sea_color(&mut self, inp: ColorWrap) {
         self.sea_color = Some(inp)
     }
+    pub fn set_data_scale(&mut self, inp: Option<(fn(f64, f64) -> f64, f64)>) {
+        self.scale_fn = inp
+    }
     pub fn set_color(&mut self, inp: Option<ColorWrap>) {
         self.data_color = inp
     }
-    pub fn darkmode(&mut self, inp: bool) {
-        if inp {
-            self.default_color = ColorWrap::from(Rgb::from([0x00, 0x00, 0x00]))
-        } else {
-            self.default_color = ColorWrap::from(Rgb::from([0xFF, 0xFF, 0xFF]))
-        }
+    pub fn darkmode(&mut self, inp: ColorWrap) {
+        self.default_color = inp
     }
     pub fn set_lines(&mut self, inp: Coloring) {
         self.lines = inp
@@ -88,12 +86,18 @@ impl MapDrawer {
             ..Self::default()
         }
     }
+    pub fn extremify(&mut self, stretch: bool) {
+        if self.data_color.is_none() {
+            self.data_color = Some(self.default_color.inverse())
+        } else if stretch {
+            let temp = self.default_color;
+            self.data_color.map(|mut x| x.stretch(&temp));
+        }
+    }
 
     pub fn draw(&mut self, info: &Info, save_to: PathBuf, map_data: bool) -> Result<(), VicError> {
-
         self.draw_map_coloring(info).unwrap();
         self.draw_lines_coloring(info).unwrap();
-
 
         let mut saver = self.premade_color.get(&self.color_map).unwrap().clone();
 
@@ -116,11 +120,18 @@ impl MapDrawer {
                 }
                 _ => return Err(VicError::named("no numerator when trying to map")),
             }
+
+            if let Some((f, a)) = self.scale_fn {
+                data.values_mut()
+                    .for_each(|x| *x = f(*x, a));
+            }
+
             let max = data.values().fold(0.0f64, |a, &b| a.max(b));
             let min = data.values().fold(1.0f64, |a, &b| a.min(b));
 
             data.values_mut()
                 .for_each(|x| *x = (*x - min) / (max - min));
+
 
             let map = info.get_map()?;
             let save = info.get_save()?;
@@ -169,7 +180,6 @@ impl MapDrawer {
                 .filter(|&(_, &y)| y == Rgb::from([0, 0, 0]))
                 .for_each(|(x, _)| *x = Rgb::from([0, 0, 0]))
         } else {
-
         }
 
         crate::utilities::save3(save_to, "test.png", &saver)?;
@@ -177,7 +187,6 @@ impl MapDrawer {
         Ok(())
     }
     fn draw_lines_coloring(&mut self, info: &Info) -> Result<(), VicError> {
-
         let base_map = match self.premade_color.get(&self.lines) {
             Some(a) => a,
             None => {
@@ -224,7 +233,6 @@ impl MapDrawer {
         Ok(())
     }
     fn draw_map_coloring(&mut self, info: &Info) -> Result<(), VicError> {
-
         if self.premade_color.contains_key(&self.color_map) {
             return Ok(());
         }
@@ -237,7 +245,7 @@ impl MapDrawer {
             let new_map = province_map.new_empty(ColorWrap::from(Rgb::from([0xFF, 0xFF, 0xFF])));
             self.premade_color.insert(Coloring::Provinces, province_map);
             self.premade_color.insert(self.color_map, new_map);
-            return Ok(())
+            return Ok(());
         }
 
         let mut new_map = province_map.clone();

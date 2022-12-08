@@ -1,4 +1,4 @@
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 
 use fltk::{
     button::{Button, CheckButton},
@@ -7,6 +7,7 @@ use fltk::{
     prelude::{GroupExt, InputExt, WidgetExt},
 };
 
+use super::*;
 use crate::data::DataTypes;
 
 pub struct ScanTab {
@@ -31,7 +32,7 @@ impl ScanTab {
         let scan_group = Group::default()
             .with_pos(tab.x(), tab.y() + tab_box_height)
             .with_size(tab.w(), tab.h() - tab_box_height)
-            .with_label("Tab1\t\t");
+            .with_label("Scanning\t");
 
         // -----------------------------------
 
@@ -95,12 +96,11 @@ impl ScanTab {
 
         scan_group.end();
 
-        save_selector.emit(s, 3);
-        game_selector.emit(s, 4);
+        save_selector.emit(s, 200);
+        game_selector.emit(s, 201);
 
-        save_check.set_callback(move |x| x.set_checked(!x.is_checked()));
-        game_check.set_callback(move |x| x.set_checked(!x.is_checked()));
-
+        save_check.set_callback(read_only_checkbutton);
+        game_check.set_callback(read_only_checkbutton);
         Self {
             save_check,
             game_check,
@@ -115,12 +115,14 @@ impl ScanTab {
             DataTypes::Map => {
                 self.game_check.set_checked(new_check);
                 self.game_text_pathbuf = label;
-                self.game_text.set_value(self.game_text_pathbuf.to_string_lossy().as_ref());
+                self.game_text
+                    .set_value(self.game_text_pathbuf.to_string_lossy().as_ref());
             }
             DataTypes::Save => {
                 self.save_check.set_checked(new_check);
                 self.save_text_pathbuf = label;
-                self.save_text.set_value(self.save_text_pathbuf.to_string_lossy().as_ref());
+                self.save_text
+                    .set_value(self.save_text_pathbuf.to_string_lossy().as_ref());
                 self.save_text_pathbuf.pop();
             }
         }

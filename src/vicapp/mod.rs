@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
 
 use crate::data::{DataTypes, Info};
-use crate::draw::{Coloring, MapDrawer};
+use crate::draw::{self, Coloring, MapDrawer};
 use crate::error::VicError;
 use crate::wrappers::ColorWrap;
 
@@ -23,8 +23,8 @@ use fltk::{enums, input};
 
 use self::scan_tab::ScanTab;
 
-mod scan_tab;
 mod draw_tab;
+mod scan_tab;
 
 pub fn run() -> Result<(), VicError> {
     // println!("{:?}", dirs::cache_dir());
@@ -52,31 +52,36 @@ pub fn run() -> Result<(), VicError> {
     let mut scan_tab = scan_tab::ScanTab::new(&tab, s, tab_box_height);
     let mut draw_tab = draw_tab::DrawTab::new(&tab, s, tab_box_height);
 
-
     tab.end();
-
 
     wind.end();
     wind.show();
 
     while app.wait() {
         match r.recv() {
-            Some(0) => (_, info, mapdrawer) = draw_tab.draw(info, mapdrawer, &mut app)?,
-            Some(1) => (_, info, mapdrawer) = draw_tab.quick_draw_countries(info, mapdrawer, &mut app)?,
-            Some(2) => (_, info, mapdrawer) = draw_tab.quick_draw_states(info, mapdrawer, &mut app)?,
-            Some(3) => {
+            Some(100) => (_, info, mapdrawer) = draw_tab.draw(info, mapdrawer, &mut app)?,
+            Some(101) => {
+                (_, info, mapdrawer) = draw_tab.quick_draw_countries(info, mapdrawer, &mut app)?
+            }
+            Some(102) => {
+                (_, info, mapdrawer) = draw_tab.quick_draw_states(info, mapdrawer, &mut app)?
+            }
+            Some(103) => draw_tab.lock(),
+            Some(104) => draw_tab.check_custom_color(false), // from custom_color textbox callback
+            Some(105) => draw_tab.check_custom_color(true),
+            Some(106) => draw_tab.check_default_color(false), // from custom_default textbox callback
+            Some(107) => draw_tab.check_default_color(true),
+            Some(200) => {
                 info.clear(DataTypes::Save);
                 (info, _) = match info.find_path(DataTypes::Save, &mut app, &mut scan_tab)? {
                     (Some(err), returned_info, new_save_path) => {
                         println!("{:?}", err);
                         (returned_info, new_save_path)
                     }
-                    (None, returned_info, new_save_path) => {
-                        (returned_info, new_save_path)
-                    }
+                    (None, returned_info, new_save_path) => (returned_info, new_save_path),
                 }
             }
-            Some(4) => {
+            Some(201) => {
                 info.clear(DataTypes::Map);
                 (info, _) = match info.find_path(DataTypes::Map, &mut app, &mut scan_tab)? {
                     (Some(err), returned_info, new_map_path) => {
@@ -89,8 +94,6 @@ pub fn run() -> Result<(), VicError> {
                     }
                 }
             }
-            Some(5) => (_, info, mapdrawer) = draw_tab.quick_draw_countries(info, mapdrawer, &mut app)?,
-            Some(6) => (_, info, mapdrawer) = draw_tab.quick_draw_states(info, mapdrawer, &mut app)?,
             _ => {}
         }
     }
@@ -99,29 +102,36 @@ pub fn run() -> Result<(), VicError> {
     Ok(())
 }
 
+fn read_only_checkbutton(inp: &mut CheckButton) {
+    inp.set_value(!inp.value())
+}
+
 impl Info {
     /// in vicapp/mod.rs, not in the normal impl location. might move, or turn into function
     pub fn find_path(
         mut self,
         load_type: DataTypes,
         app: &mut app::App,
-        scan_tab: &mut ScanTab
-
+        scan_tab: &mut ScanTab,
     ) -> Result<(Option<VicError>, Self, PathBuf), VicError> {
-
         let mut dialog;
         let win;
         let lin;
         match load_type {
-            DataTypes::Map  => {
+            DataTypes::Map => {
                 dialog = NativeFileChooser::new(NativeFileChooserType::BrowseDir);
                 win = Path::new("c:/Steam/steamapps/common/Victoria 3").to_path_buf();
                 lin = Path::new("/mnt/c/Steam/steamapps/common/Victoria 3").to_path_buf();
             }
             DataTypes::Save => {
                 dialog = NativeFileChooser::new(NativeFileChooserType::BrowseFile);
-                win = Path::new("c:/Users/sverr/Documents/Paradox Interactive/Victoria 3/save games").to_path_buf();
-                lin = Path::new("/mnt/c/Users/sverr/Documents/Paradox Interactive/Victoria 3/save games").to_path_buf();
+                win =
+                    Path::new("c:/Users/sverr/Documents/Paradox Interactive/Victoria 3/save games")
+                        .to_path_buf();
+                lin = Path::new(
+                    "/mnt/c/Users/sverr/Documents/Paradox Interactive/Victoria 3/save games",
+                )
+                .to_path_buf();
             }
         };
         // temp code for convenience
@@ -137,13 +147,10 @@ impl Info {
 
         let (sa, ra) = app::channel::<(Option<VicError>, Info)>();
 
-        thread::spawn( {
+        thread::spawn({
             let t = dialog.filename();
             move || {
-                sa.send((
-                    self.load(t.as_path(), load_type).err(),
-                    self
-                ));
+                sa.send((self.load(t.as_path(), load_type).err(), self));
             }
         });
 
