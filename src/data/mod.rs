@@ -17,14 +17,14 @@ pub enum DataTypes {
 
 pub struct Info {
     map: Option<Map>,
-    save: Vec<Save>
+    save: Vec<Save>,
 }
 
 impl Info {
     pub fn new() -> Self {
         Self {
             map: None,
-            save: Vec::new()
+            save: Vec::new(),
         }
     }
     pub fn load(&mut self, inp: &Path, load_type: DataTypes) -> Result<(), VicError> {
@@ -53,7 +53,7 @@ impl Info {
     pub fn culture(
         &self,
         culture: &str,
-        save_id: usize
+        save_id: usize,
     ) -> Result<(HashMap<usize, usize>, Option<ColorWrap>), VicError> {
         self.get_map().and_then(|m| {
             self.get_save(save_id).and_then(|q| {
@@ -89,7 +89,7 @@ impl Info {
     pub fn religion(
         &self,
         religion: &str,
-        save_id: usize
+        save_id: usize,
     ) -> Result<(HashMap<usize, usize>, Option<ColorWrap>), VicError> {
         self.get_save(save_id).and_then(|q| {
             q.pops()

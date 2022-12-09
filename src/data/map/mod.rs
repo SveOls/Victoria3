@@ -68,7 +68,6 @@ pub struct Map {
 
 impl<'a> Map {
     pub fn new(inp: &Path) -> Result<Self, VicError> {
-
         use std::sync::mpsc;
         use std::thread;
 

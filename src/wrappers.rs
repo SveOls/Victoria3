@@ -7,26 +7,6 @@ use std::{
 // use fltk::enums::Color;
 use image::{ImageBuffer, Rgb};
 
-pub fn get_provinces(
-    flip: bool,
-    shrink: Option<f64>,
-) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>, VicError> {
-    let mut ret =
-        image::open("/mnt/c/Steam/steamapps/common/Victoria 3/game/map_data/provinces.png")?;
-    if let Some(a) = shrink {
-        ret = ret.resize(
-            ((a * ret.width() as f64) / 100.0) as u32,
-            u32::MAX,
-            image::imageops::FilterType::Nearest,
-        );
-    }
-    if flip {
-        Ok(ret.flipv().into_rgb8())
-    } else {
-        Ok(ret.into_rgb8())
-    }
-}
-
 #[derive(Clone)]
 pub struct ImageWrap(ImageBuffer<Rgb<u8>, Vec<u8>>);
 

@@ -207,7 +207,6 @@ impl GetMapData for Save {
 
         let mut writer: Vec<u8> = vec![];
 
-
         match zip::ZipArchive::new(std::fs::File::open(&inp)?) {
             Ok(mut zipper) => {
                 let mut file = zipper.by_name("gamestate")?;

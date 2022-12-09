@@ -21,7 +21,7 @@ pub struct DrawTab {
     status: Output,
     preview_selector: Choice,
     savepath: Input,
-    save_selector: Choice
+    save_selector: Choice,
 }
 
 impl DrawTab {
@@ -233,7 +233,6 @@ impl DrawTab {
             .with_align(label_align_choice);
         t_y_right += button_separation + valscale_num.h();
 
-
         t_y_right += label_height;
         let mut status = Output::default()
             .with_pos(
@@ -364,7 +363,7 @@ impl DrawTab {
             status,
             preview_selector,
             savepath,
-            save_selector
+            save_selector,
         };
         ret.lock();
         ret
@@ -384,7 +383,8 @@ impl DrawTab {
         );
     }
     pub fn add_save(&mut self, path: &Path) {
-        self.save_selector.add_choice(path.file_name().unwrap().to_string_lossy().as_ref());
+        self.save_selector
+            .add_choice(path.file_name().unwrap().to_string_lossy().as_ref());
     }
     pub fn clear_saves(&mut self) {
         self.save_selector.clear()
@@ -567,15 +567,22 @@ impl DrawTab {
             _ => return Err(VicError::temp()),
         }
         let (num, col) = match self.choicenum.value() {
-            0 => info.religion(&self.input_name.value(), self.save_selector.value() as usize)?,
-            1 => info.culture(&self.input_name.value(), self.save_selector.value() as usize)?,
+            0 => info.religion(
+                &self.input_name.value(),
+                self.save_selector.value() as usize,
+            )?,
+            1 => info.culture(
+                &self.input_name.value(),
+                self.save_selector.value() as usize,
+            )?,
             2 => (info.population(self.save_selector.value() as usize)?, None),
             _ => return Err(VicError::temp()),
         };
         mapdrawer.set_numerator(Some(num));
         match self.choiceden.value() {
             0 => mapdrawer.set_denominator(None),
-            1 => mapdrawer.set_denominator(Some(info.population(self.save_selector.value() as usize)?)),
+            1 => mapdrawer
+                .set_denominator(Some(info.population(self.save_selector.value() as usize)?)),
             2 => mapdrawer.set_denominator(Some(info.area(self.save_selector.value() as usize)?)),
             _ => return Err(VicError::temp()),
         }

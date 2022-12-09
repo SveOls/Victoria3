@@ -1,15 +1,12 @@
 use super::*;
 
-
 pub struct PreviewTab {
     image_frame: Frame,
     show_path: Output,
 }
 
-
 impl PreviewTab {
     pub fn new(tabs: &Tabs, _s: Sender<usize>, tab_box_height: i32) -> Self {
-
         let edge_buffer = 10;
         let textbox_height = 40;
 
@@ -19,23 +16,28 @@ impl PreviewTab {
             .with_label("Preview \t");
 
         let show_path = Output::default()
-            .with_size(
-                preview_group.w() - 2 * edge_buffer,
-                textbox_height,
-            ).with_pos(preview_group.x() + edge_buffer, preview_group.y() + edge_buffer
-        );
+            .with_size(preview_group.w() - 2 * edge_buffer, textbox_height)
+            .with_pos(
+                preview_group.x() + edge_buffer,
+                preview_group.y() + edge_buffer,
+            );
 
         let image_frame = Frame::default()
-            .with_size(preview_group.w() - 2 * edge_buffer, preview_group.h() - 3 * edge_buffer - show_path.h())
-            .with_pos(preview_group.x() + edge_buffer, show_path.y() + show_path.h() + edge_buffer);
+            .with_size(
+                preview_group.w() - 2 * edge_buffer,
+                preview_group.h() - 3 * edge_buffer - show_path.h(),
+            )
+            .with_pos(
+                preview_group.x() + edge_buffer,
+                show_path.y() + show_path.h() + edge_buffer,
+            );
 
         preview_group.end();
 
         Self {
             image_frame,
-            show_path
+            show_path,
         }
-
     }
     pub fn insert_image(&mut self, at: PathBuf) {
         println!("{:?}", at);

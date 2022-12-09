@@ -26,61 +26,41 @@ impl ScanTab {
 
         // -----------------------------------
 
-        let mut scan_buttons = Pack::default()
-            .with_pos(
-                scan_group.x() + checkbox_width + edge_buffer,
-                scan_group.y() + edge_buffer,
-            )
-            .with_size(button_width, scan_group.h() - 2 * edge_buffer);
-
-        scan_buttons.set_spacing(spacing);
-
+        let mut ty = scan_group.y() + edge_buffer;
+        let mut game_check = CheckButton::default()
+            .with_pos(scan_group.x() + edge_buffer, ty)
+            .with_size(checkbox_width, button_height);
         let mut game_selector = Button::default()
-            .with_label("Load Game Files")
-            .with_size(button_width, button_height);
-        let mut save_selector = Button::default()
-            .with_label("Load Save")
-            .with_size(button_width, button_height);
-
-        scan_buttons.end();
-
-        // -----------------------------------
-
-        let mut scan_checkbox = Pack::default()
-            .with_pos(scan_group.x() + edge_buffer, scan_group.y() + edge_buffer)
-            .with_size(checkbox_width, scan_group.h() - 2 * edge_buffer);
-
-        scan_checkbox.set_spacing(spacing);
-
-        let mut game_check = CheckButton::default().with_size(checkbox_width, button_height);
-        let mut save_check = CheckButton::default().with_size(checkbox_width, button_height);
-
-        scan_checkbox.end();
-
-        // -----------------------------------
-
-        let mut scan_textbox = Pack::default()
-            .with_pos(
-                scan_group.x() + checkbox_width + edge_buffer + textbox_buffer + button_width,
-                scan_group.y() + edge_buffer,
-            )
+            .with_pos(game_check.x() + game_check.w(), ty)
+            .with_size(button_width, game_check.h())
+            .with_label("Load Game Files");
+        let game_text = Output::default()
+            .with_pos(game_selector.x() + game_selector.w() + textbox_buffer, ty)
             .with_size(
-                scan_group.w() - 2 * edge_buffer - checkbox_width - button_width - textbox_buffer,
-                scan_group.h() - 2 * edge_buffer,
+                scan_group.w() - game_selector.x() - game_selector.w() - edge_buffer - textbox_buffer,
+                game_selector.h(),
             );
+        ty += spacing + game_text.h();
 
-        scan_textbox.set_spacing(spacing);
+        let mut save_check = CheckButton::default()
+            .with_pos(scan_group.x() + edge_buffer, ty)
+            .with_size(checkbox_width, button_height);
+        let mut save_selector = Button::default()
+            .with_pos(save_check.x() + save_check.w(), ty)
+            .with_size(button_width, save_check.h())
+            .with_label("Load Save");
+        let save_text = Output::default()
+            .with_pos(save_selector.x() + save_selector.w() + textbox_buffer, ty)
+            .with_size(
+                scan_group.w() - save_selector.x() - save_selector.w() - edge_buffer - textbox_buffer,
+                save_selector.h(),
+            );
+        ty += spacing + save_text.h();
 
-        let game_text = Output::default().with_size(
-            scan_group.w() - 2 * edge_buffer - checkbox_width - button_width - textbox_buffer,
-            button_height,
-        );
-        let save_text = Output::default().with_size(
-            scan_group.w() - 2 * edge_buffer - checkbox_width - button_width - textbox_buffer,
-            button_height,
-        );
-
-        scan_textbox.end();
+        let mut save_clear = Button::default()
+            .with_pos(scan_group.x() + edge_buffer, ty)
+            .with_size(button_width + checkbox_width, button_height)
+            .with_label("Clear Saves");
 
         // -----------------------------------
 
@@ -88,6 +68,7 @@ impl ScanTab {
 
         save_selector.emit(s, 200);
         game_selector.emit(s, 201);
+        save_clear.emit(s, 202);
 
         save_check.set_callback(read_only_checkbutton);
         game_check.set_callback(read_only_checkbutton);

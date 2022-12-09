@@ -34,9 +34,9 @@ impl fmt::Display for VicError {
 impl fmt::Debug for VicError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            VicError::MapError(a) => write!(f, "error {}", a),
-            VicError::SaveError => write!(f, "aaaaa"),
-            VicError::Other(a) => write!(f, "{:?}", a),
+            VicError::MapError(a) => write!(f, "Custom Error: {}", a),
+            VicError::SaveError => write!(f, "Unnamed Custom Error"),
+            VicError::Other(a) => write!(f, "Derived Error: {:?}", a),
         }
     }
 }

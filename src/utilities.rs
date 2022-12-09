@@ -2,11 +2,7 @@ use std::{fs, io, path::PathBuf};
 
 use crate::error::VicError;
 
-
-pub fn save3(
-    spath: PathBuf,
-    thing: &crate::wrappers::ImageWrap,
-) -> Result<(), VicError> {
+pub fn save3(spath: PathBuf, thing: &crate::wrappers::ImageWrap) -> Result<(), VicError> {
     let mut temp = spath.clone();
     temp.pop();
     match fs::create_dir_all(temp.as_path()) {

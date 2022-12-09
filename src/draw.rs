@@ -95,7 +95,13 @@ impl MapDrawer {
         }
     }
 
-    pub fn draw(&mut self, info: &Info, save_id: usize, save_to: PathBuf, map_data: bool) -> Result<(), VicError> {
+    pub fn draw(
+        &mut self,
+        info: &Info,
+        save_id: usize,
+        save_to: PathBuf,
+        map_data: bool,
+    ) -> Result<(), VicError> {
         let mut temp = Coloring::StateTemplates;
         std::mem::swap(&mut temp, &mut self.color_map);
         self.draw_map_coloring(info, save_id)?;
@@ -104,11 +110,19 @@ impl MapDrawer {
         self.draw_map_coloring(info, save_id)?;
         self.draw_lines_coloring(info, save_id)?;
 
-        let mut saver = self.premade_color.get(&(save_id, self.color_map)).unwrap().clone();
+        let mut saver = self
+            .premade_color
+            .get(&(save_id, self.color_map))
+            .unwrap()
+            .clone();
 
         if let Some(sea_color) = self.sea_color {
             for pix in saver.pixels_mut() {
-                if self.owners.get(&(save_id, *pix)).map_or(false, |x| x.is_none()) {
+                if self
+                    .owners
+                    .get(&(save_id, *pix))
+                    .map_or(false, |x| x.is_none())
+                {
                     *pix = sea_color.unravel();
                 }
             }
@@ -187,7 +201,12 @@ impl MapDrawer {
         if self.lines != Coloring::None {
             saver
                 .pixels_mut()
-                .zip(self.premade_lines.get(&(save_id, self.lines)).unwrap().pixels())
+                .zip(
+                    self.premade_lines
+                        .get(&(save_id, self.lines))
+                        .unwrap()
+                        .pixels(),
+                )
                 .filter(|&(_, &y)| {
                     (y == Rgb::from([0, 0, 0]))
                         || (y == Rgb::from([127, 127, 127]) && self.sea_province_borders)
@@ -232,7 +251,11 @@ impl MapDrawer {
                 .map(|x| {
                     (
                         x.iter().filter_map(|&x| x).fold(true, |a, b| {
-                            a && self.owners.get(&(save_id, *b)).map(|y| y.is_none()).unwrap_or(false)
+                            a && self
+                                .owners
+                                .get(&(save_id, *b))
+                                .map(|y| y.is_none())
+                                .unwrap_or(false)
                         }),
                         x,
                     )
@@ -273,8 +296,10 @@ impl MapDrawer {
 
         if self.color_map == Coloring::None {
             let new_map = province_map.new_empty(ColorWrap::from(Rgb::from([0xFF, 0xFF, 0xFF])));
-            self.premade_color.insert((save_id, Coloring::Provinces), province_map);
-            self.premade_color.insert((save_id, self.color_map), new_map);
+            self.premade_color
+                .insert((save_id, Coloring::Provinces), province_map);
+            self.premade_color
+                .insert((save_id, self.color_map), new_map);
             return Ok(());
         }
 
@@ -304,7 +329,8 @@ impl MapDrawer {
                                         .ok_or(VicError::named("no province index?"))?,
                                 )
                                 .map(|(x, y)| [x.id(), y.id()]);
-                            self.owners.insert((save_id, *color), Some(([None; 3], temp_owners)));
+                            self.owners
+                                .insert((save_id, *color), Some(([None; 3], temp_owners)));
                             match self.color_map {
                                 Coloring::None | Coloring::Provinces => unreachable!(),
                                 Coloring::SaveCountries => Ok(temp_owners.map(|x| x[1])),
@@ -337,15 +363,17 @@ impl MapDrawer {
             }
             *color = updatedcolor;
         }
-        self.premade_color.insert((save_id, Coloring::Provinces), province_map);
-        self.premade_color.insert((save_id, self.color_map), new_map);
+        self.premade_color
+            .insert((save_id, Coloring::Provinces), province_map);
+        self.premade_color
+            .insert((save_id, self.color_map), new_map);
         Ok(())
     }
 
     fn owner_getter(
         &self,
         color: &Rgb<u8>,
-        save_id: usize
+        save_id: usize,
     ) -> Result<Option<(Option<Rgb<u8>>, Option<usize>)>, VicError> {
         match self.color_map {
             Coloring::StateTemplates => Ok(self
