@@ -2,69 +2,26 @@ use std::{fs, io, path::PathBuf};
 
 use crate::error::VicError;
 
-pub fn save(spath: &str, fname: &str, thing: crate::wrappers::ImageWrap) -> Result<(), VicError> {
-    let mut buf = std::path::PathBuf::new();
-    buf.push(spath);
-    match fs::create_dir_all(buf.as_path()) {
-        Err(e) if { &e.kind() != &io::ErrorKind::AlreadyExists } => {
-            return Err(VicError::Other(Box::new(e)))
-        }
-        _ => {}
-    }
-    buf.push(fname);
-    match fs::remove_file(buf.as_path()) {
-        Err(e) if { &e.kind() != &io::ErrorKind::NotFound } => {
-            return Err(VicError::Other(Box::new(e)))
-        }
-        _ => {}
-    }
-    thing.save(buf.as_path())?;
-
-    Ok(())
-}
-
-pub fn save2(spath: &str, fname: &str, thing: &crate::wrappers::ImageWrap) -> Result<(), VicError> {
-    let mut buf = std::path::PathBuf::new();
-    buf.push(spath);
-    match fs::create_dir_all(buf.as_path()) {
-        Err(e) if { &e.kind() != &io::ErrorKind::AlreadyExists } => {
-            return Err(VicError::Other(Box::new(e)))
-        }
-        _ => {}
-    }
-    buf.push(fname);
-    match fs::remove_file(buf.as_path()) {
-        Err(e) if { &e.kind() != &io::ErrorKind::NotFound } => {
-            return Err(VicError::Other(Box::new(e)))
-        }
-        _ => {}
-    }
-    thing.save(buf.as_path())?;
-
-    Ok(())
-}
 
 pub fn save3(
     spath: PathBuf,
-    fname: &str,
     thing: &crate::wrappers::ImageWrap,
 ) -> Result<(), VicError> {
-    let mut buf = std::path::PathBuf::new();
-    buf.push(spath);
-    match fs::create_dir_all(buf.as_path()) {
+    let mut temp = spath.clone();
+    temp.pop();
+    match fs::create_dir_all(temp.as_path()) {
         Err(e) if { &e.kind() != &io::ErrorKind::AlreadyExists } => {
             return Err(VicError::Other(Box::new(e)))
         }
         _ => {}
     }
-    buf.push(fname);
-    match fs::remove_file(buf.as_path()) {
+    match fs::remove_file(spath.as_path()) {
         Err(e) if { &e.kind() != &io::ErrorKind::NotFound } => {
             return Err(VicError::Other(Box::new(e)))
         }
         _ => {}
     }
-    thing.save(buf.as_path())?;
+    thing.save(spath.as_path())?;
 
     Ok(())
 }

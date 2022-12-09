@@ -68,7 +68,6 @@ pub struct Map {
 
 impl<'a> Map {
     pub fn new(inp: &Path) -> Result<Self, VicError> {
-        println!("scan start");
 
         use std::sync::mpsc;
         use std::thread;
@@ -197,7 +196,6 @@ impl<'a> Map {
         let professions = tempest3.2?;
         let traits = tempest3.3?;
 
-        println!("scan end");
         Ok(Self {
             cultures,
             countries,

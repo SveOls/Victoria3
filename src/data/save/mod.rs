@@ -27,7 +27,6 @@ pub struct Save {
 
 impl Save {
     pub fn new(inp: &Path) -> Result<Self, VicError> {
-        println!("Hey");
         Self::new_vec(inp.to_path_buf()).map(|mut x| x.remove(0))
     }
     pub fn get_owners(&self, province: usize) -> Option<(&State, &Country)> {
@@ -110,7 +109,6 @@ impl GetMapData for Save {
 
     fn consume_one(inp: DataStructure) -> Result<Self, VicError> {
         // let terr = || -> io::Error { io::Error::new(io::ErrorKind::Other, format!("default error consume save")) };
-        println!("hey");
 
         let mut t_pops: Option<Vec<Pop>> = None;
         let mut t_states: Option<HashMap<usize, State>> = None;
@@ -183,7 +181,6 @@ impl GetMapData for Save {
                 }
             }
         }
-        println!("{t_date:?}");
 
         if let (Some(pops), Some(countries), Some(cultures), Some(mut states), Some(date)) =
             (t_pops, t_countries, t_cultures, t_states, t_date)
@@ -210,7 +207,6 @@ impl GetMapData for Save {
 
         let mut writer: Vec<u8> = vec![];
 
-        println!("{inp:?}");
 
         match zip::ZipArchive::new(std::fs::File::open(&inp)?) {
             Ok(mut zipper) => {

@@ -110,27 +110,59 @@ impl ColorWrap {
         }
     }
     pub fn stretch(self, rhs: &Self) -> Self {
-
         let min = *self.unravel().0.iter().min().unwrap() as f64;
         let max = *self.unravel().0.iter().max().unwrap() as f64;
-        let minscale = |x: u8| -> u8 {
-            x - ((255.0 - x as f64) * (min)/(255.0 - min)) as u8
-        };
-        let maxscale = |x: u8| -> u8 {
-            x + (x as f64 * (255.0 - max)/(max)) as u8
-        };
-        let candidate_a = Self::to_colorwrap(&self.unravel().0.into_iter().map(maxscale).map(|x| format!("{:02X}", x)).collect::<String>()).unwrap();
-        let candidate_b = Self::to_colorwrap(&self.unravel().0.into_iter().map(minscale).map(|x| format!("{:02X}", x)).collect::<String>()).unwrap();
+        let minscale = |x: u8| -> u8 { x - ((255.0 - x as f64) * (min) / (255.0 - min)) as u8 };
+        let maxscale = |x: u8| -> u8 { x + (x as f64 * (255.0 - max) / (max)) as u8 };
+        let candidate_a = Self::to_colorwrap(
+            &self
+                .unravel()
+                .0
+                .into_iter()
+                .map(maxscale)
+                .map(|x| format!("{:02X}", x))
+                .collect::<String>(),
+        )
+        .unwrap();
+        let candidate_b = Self::to_colorwrap(
+            &self
+                .unravel()
+                .0
+                .into_iter()
+                .map(minscale)
+                .map(|x| format!("{:02X}", x))
+                .collect::<String>(),
+        )
+        .unwrap();
 
-        let (a, b, c) = rhs.unravel().0.iter().zip(
-            self.unravel().0.iter().zip(
-                candidate_a.unravel().0.iter().zip(
-                    candidate_b.unravel().0.iter()
-                    )
-                )
+        let (a, b, c) = rhs
+            .unravel()
+            .0
+            .iter()
+            .zip(
+                self.unravel().0.iter().zip(
+                    candidate_a
+                        .unravel()
+                        .0
+                        .iter()
+                        .zip(candidate_b.unravel().0.iter()),
+                ),
             )
-            .map(|x| (*x.0 as i64, *x.1.0 as i64, *x.1.1.0 as i64, *x.1.1.1 as i64))
-            .fold((0, 0, 0), |tot, (a, b, c, d)| (tot.0 + b.abs_diff(a), tot.1 + c.abs_diff(a), tot.2 + d.abs_diff(a)));
+            .map(|x| {
+                (
+                    *x.0 as i64,
+                    *x.1 .0 as i64,
+                    *x.1 .1 .0 as i64,
+                    *x.1 .1 .1 as i64,
+                )
+            })
+            .fold((0, 0, 0), |tot, (a, b, c, d)| {
+                (
+                    tot.0 + b.abs_diff(a),
+                    tot.1 + c.abs_diff(a),
+                    tot.2 + d.abs_diff(a),
+                )
+            });
 
         if a > b.max(c) {
             self

@@ -13,23 +13,28 @@ use fltk::dialog::{
     FileChooser, FileChooserType, NativeFileChooser, NativeFileChooserOptions,
     NativeFileChooserType,
 };
-use fltk::enums::{Align, CallbackTrigger};
+use fltk::enums::{Align, CallbackTrigger, Color, FrameType};
 use fltk::group::{Group, Pack, Scroll, Tabs};
-use fltk::menu;
+use fltk::image::PngImage;
+use fltk::menu::Choice;
+use fltk::input::{FloatInput, Input};
 use fltk::output::Output;
-use fltk::{app, window::Window};
+use fltk::{app::{self, Scheme, Sender, App}, window::Window};
 use fltk::{button::Button, frame::Frame, prelude::*};
-use fltk::{enums, input};
+use fltk::prelude::{ButtonExt, GroupExt, InputExt, MenuExt, WidgetBase, WidgetExt};
 
+use self::preview_tab::PreviewTab;
 use self::scan_tab::ScanTab;
+use self::draw_tab::DrawTab;
 
 mod draw_tab;
 mod scan_tab;
+mod preview_tab;
 
 pub fn run() -> Result<(), VicError> {
     // println!("{:?}", dirs::cache_dir());
 
-    let mut app = app::App::default().with_scheme(app::Scheme::Gtk);
+    let mut app = App::default().with_scheme(Scheme::Gtk);
     let mut info = Info::new();
     let mut mapdrawer = MapDrawer::default();
     // let mut game_dir: PathBuf;
@@ -38,33 +43,71 @@ pub fn run() -> Result<(), VicError> {
 
     let (s, r) = app::channel::<usize>();
 
-    let mut wind = Window::default().with_size(1280, 720);
+    let mut wind = Window::default()
+        .with_size(1280, 720)
+        .with_label("Victoria 3 Save Analyzer");
 
     let tab_edge_buffer = 5; // buffer between edge of window and tab box
-    let tab = Tabs::default()
+    let tab_box_height = 25;
+    let output_height = 40;
+    let tabs = Tabs::default()
         .with_pos(wind.x() + tab_edge_buffer, wind.y() + tab_edge_buffer)
         .with_size(
             wind.w() - 2 * tab_edge_buffer,
-            wind.h() - 2 * tab_edge_buffer,
+            wind.h() - 3 * tab_edge_buffer - output_height,
         );
+    let mut scan_tab = ScanTab::new(&tabs, s, tab_box_height);
+    let mut draw_tab = DrawTab::new(&tabs, s, tab_box_height);
+    let mut preview_tab = PreviewTab::new(&tabs, s, tab_box_height);
+    tabs.end();
 
-    let tab_box_height = 25;
-    let mut scan_tab = scan_tab::ScanTab::new(&tab, s, tab_box_height);
-    let mut draw_tab = draw_tab::DrawTab::new(&tab, s, tab_box_height);
-
-    tab.end();
+    let mut output_info = Output::default()
+        .with_pos(tabs.x(), tabs.y() + tabs.h() + tab_edge_buffer)
+        .with_size(tabs.w(), output_height);
+    output_info.set_value("Idle");
 
     wind.end();
     wind.show();
 
+    let mut returned_error: Option<VicError>;
+
     while app.wait() {
         match r.recv() {
-            Some(100) => (_, info, mapdrawer) = draw_tab.draw(info, mapdrawer, &mut app)?,
+            Some(100) => {
+                output_info.set_value("Drawing...");
+                (returned_error, info, mapdrawer) = draw_tab.draw(info, mapdrawer, &mut app)?;
+                if draw_tab.preview() && returned_error.is_none() {
+                    preview_tab.insert_image(draw_tab.get_draw_to());
+                }
+                if let Some(e) = returned_error {
+                    output_info.set_value(&format!("Idle - Draw Error: {}", e));
+                } else {
+                    output_info.set_value("Idle");
+                }
+            },
             Some(101) => {
-                (_, info, mapdrawer) = draw_tab.quick_draw_countries(info, mapdrawer, &mut app)?
+                output_info.set_value("Drawing...");
+                (returned_error, info, mapdrawer) = draw_tab.quick_draw_countries(info, mapdrawer, &mut app)?;
+                if draw_tab.preview() && returned_error.is_none() {
+                    preview_tab.insert_image(draw_tab.get_draw_to());
+                }
+                if let Some(e) = returned_error {
+                    output_info.set_value(&format!("Idle - Draw Error: {}", e));
+                } else {
+                    output_info.set_value("Idle");
+                }
             }
             Some(102) => {
-                (_, info, mapdrawer) = draw_tab.quick_draw_states(info, mapdrawer, &mut app)?
+                output_info.set_value("Drawing...");
+                (returned_error, info, mapdrawer) = draw_tab.quick_draw_states(info, mapdrawer, &mut app)?;
+                if draw_tab.preview() && returned_error.is_none() {
+                    preview_tab.insert_image(draw_tab.get_draw_to());
+                }
+                if let Some(e) = returned_error {
+                    output_info.set_value(&format!("Idle - Draw Error: {}", e));
+                } else {
+                    output_info.set_value("Idle");
+                }
             }
             Some(103) => draw_tab.lock(),
             Some(104) => draw_tab.check_custom_color(false), // from custom_color textbox callback
@@ -74,23 +117,29 @@ pub fn run() -> Result<(), VicError> {
             Some(108) => draw_tab.check_custom_watercolor(false), // from custom_default textbox callback
             Some(109) => draw_tab.check_custom_watercolor(true),
             Some(200) => {
-                info.clear(DataTypes::Save);
+                output_info.set_value("Scanning save...");
                 (info, _) = match info.find_path(DataTypes::Save, &mut app, &mut scan_tab)? {
-                    (Some(err), returned_info, new_save_path) => {
-                        println!("{:?}", err);
+                    (Some(e), returned_info, new_save_path) => {
+                        output_info.set_value(&format!("Idle - Save Scan Error: {}", e));
                         (returned_info, new_save_path)
                     }
-                    (None, returned_info, new_save_path) => (returned_info, new_save_path),
+                    (None, returned_info, new_save_path) => {
+                        output_info.set_value("Idle");
+                        draw_tab.add_save(new_save_path.as_path());
+                        (returned_info, new_save_path)
+                    }
                 }
             }
             Some(201) => {
+                output_info.set_value("Scanning game files...");
                 info.clear(DataTypes::Map);
                 (info, _) = match info.find_path(DataTypes::Map, &mut app, &mut scan_tab)? {
-                    (Some(err), returned_info, new_map_path) => {
-                        println!("{:?}", err);
+                    (Some(e), returned_info, new_map_path) => {
+                        output_info.set_value(&format!("Idle - Game Scan Error: {}", e));
                         (returned_info, new_map_path)
                     }
                     (None, returned_info, new_map_path) => {
+                        output_info.set_value("Idle");
                         mapdrawer.set_path(new_map_path.clone());
                         (returned_info, new_map_path)
                     }
@@ -113,7 +162,7 @@ impl Info {
     pub fn find_path(
         mut self,
         load_type: DataTypes,
-        app: &mut app::App,
+        app: &mut App,
         scan_tab: &mut ScanTab,
     ) -> Result<(Option<VicError>, Self, PathBuf), VicError> {
         let mut dialog;
@@ -146,6 +195,9 @@ impl Info {
         }
 
         dialog.show();
+        if let Some(a) = dialog.error_message() {
+            // println!("{}", a);
+        }
 
         let (sa, ra) = app::channel::<(Option<VicError>, Info)>();
 

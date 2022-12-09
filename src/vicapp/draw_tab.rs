@@ -1,27 +1,4 @@
-use std::{
-    path::{Path, PathBuf},
-    thread,
-};
-
-use fltk::{
-    app,
-    app::{App, Sender},
-    button::{Button, CheckButton},
-    enums::{Align, CallbackTrigger, Color},
-    group::{Group, Pack, Tabs},
-    input::{self, Input, FloatInput},
-    menu::Choice,
-    output::Output,
-    prelude::{ButtonExt, GroupExt, InputExt, MenuExt, WidgetBase, WidgetExt},
-};
-
 use super::*;
-use crate::{
-    data::Info,
-    draw::{self, Coloring, MapDrawer},
-    error::VicError,
-    wrappers::ColorWrap,
-};
 
 pub struct DrawTab {
     draw_data: Choice,
@@ -41,7 +18,10 @@ pub struct DrawTab {
     custom_watercolor: Input,
     custom_watercolor_check: CheckButton,
     choice_waterlines: Choice,
-    status: Output
+    status: Output,
+    preview_selector: Choice,
+    savepath: Input,
+    save_selector: Choice
 }
 
 impl DrawTab {
@@ -63,24 +43,25 @@ impl DrawTab {
             .with_size(tab.w(), tab.h() - tab_box_height)
             .with_label("Drawing \t");
 
-        let mut t_y = draw_group.y() + edge_buffer + label_height;
+        let mut t_y_left = draw_group.y() + edge_buffer + label_height;
+        let mut t_y_right = draw_group.y() + edge_buffer;
 
         let mut choicecolor = Choice::default()
-            .with_pos(draw_group.x() + edge_buffer, t_y)
+            .with_pos(draw_group.x() + edge_buffer, t_y_left)
             .with_size(selection_width, selection_height)
             .with_label("Select color")
             .with_align(label_align_choice);
-        t_y += selection_separation + choicecolor.h() + label_height;
+        t_y_left += selection_separation + choicecolor.h() + label_height;
 
         let mut choice_watercolor = Choice::default()
-            .with_pos(draw_group.x() + edge_buffer, t_y)
+            .with_pos(draw_group.x() + edge_buffer, t_y_left)
             .with_size(selection_width, selection_height)
             .with_label("Select water color")
             .with_align(label_align_choice);
         let mut custom_watercolor = Input::default()
             .with_pos(
                 draw_group.x() + edge_buffer + selection_width + selection_separation,
-                t_y,
+                t_y_left,
             )
             .with_size(selection_width - checkbox_width, selection_height)
             .with_label("custom sea color")
@@ -89,34 +70,34 @@ impl DrawTab {
             .with_pos(
                 draw_group.x() + edge_buffer + 2 * selection_width + selection_separation
                     - checkbox_width,
-                t_y,
+                t_y_left,
             )
             .with_size(checkbox_width, selection_height);
-        t_y += selection_separation + choice_watercolor.h() + label_height;
+        t_y_left += selection_separation + choice_watercolor.h() + label_height;
 
         let mut choicelines = Choice::default()
-            .with_pos(draw_group.x() + edge_buffer, t_y)
+            .with_pos(draw_group.x() + edge_buffer, t_y_left)
             .with_size(selection_width, selection_height)
             .with_label("Select lines")
             .with_align(label_align_choice);
-        t_y += selection_separation + choicelines.h() + label_height;
+        t_y_left += selection_separation + choicelines.h() + label_height;
 
         let mut choice_waterlines = Choice::default()
-            .with_pos(draw_group.x() + edge_buffer, t_y)
+            .with_pos(draw_group.x() + edge_buffer, t_y_left)
             .with_size(selection_width, selection_height)
             .with_label("Sea Province Line")
             .with_align(label_align_choice);
-        t_y += selection_separation + choice_waterlines.h() + label_height;
+        t_y_left += selection_separation + choice_waterlines.h() + label_height;
 
         let mut draw_data = Choice::default()
-            .with_pos(draw_group.x() + edge_buffer, t_y)
+            .with_pos(draw_group.x() + edge_buffer, t_y_left)
             .with_size(selection_width, selection_height)
             .with_label("data mode")
             .with_align(label_align_choice);
         let mut custom_color = Input::default()
             .with_pos(
                 draw_group.x() + edge_buffer + selection_width + selection_separation,
-                t_y,
+                t_y_left,
             )
             .with_size(selection_width - checkbox_width, selection_height)
             .with_label("custom color")
@@ -125,20 +106,20 @@ impl DrawTab {
             .with_pos(
                 draw_group.x() + edge_buffer + 2 * selection_width + selection_separation
                     - checkbox_width,
-                t_y,
+                t_y_left,
             )
             .with_size(checkbox_width, selection_height);
-        t_y += selection_separation + draw_data.h() + label_height;
+        t_y_left += selection_separation + draw_data.h() + label_height;
 
         let mut default_color = Choice::default()
-            .with_pos(draw_group.x() + edge_buffer, t_y)
+            .with_pos(draw_group.x() + edge_buffer, t_y_left)
             .with_size(selection_width, selection_height)
             .with_label("default color")
             .with_align(label_align_choice);
         let mut custom_default = Input::default()
             .with_pos(
                 draw_group.x() + edge_buffer + selection_width + selection_separation,
-                t_y,
+                t_y_left,
             )
             .with_size(selection_width - checkbox_width, selection_height)
             .with_label("custom default")
@@ -147,13 +128,13 @@ impl DrawTab {
             .with_pos(
                 draw_group.x() + edge_buffer + 2 * selection_width + selection_separation
                     - checkbox_width,
-                t_y,
+                t_y_left,
             )
             .with_size(checkbox_width, selection_height);
-        t_y += selection_separation + default_color.h() + label_height;
+        t_y_left += selection_separation + default_color.h() + label_height;
 
         let mut choicenum = Choice::default()
-            .with_pos(draw_group.x() + edge_buffer, t_y)
+            .with_pos(draw_group.x() + edge_buffer, t_y_left)
             .with_size(selection_width, selection_height)
             .with_label("Select data source")
             .with_align(label_align_choice);
@@ -161,23 +142,22 @@ impl DrawTab {
         let mut input_name = Input::default()
             .with_pos(
                 draw_group.x() + edge_buffer + selection_width + selection_separation,
-                t_y,
+                t_y_left,
             )
             .with_size(selection_width, selection_height)
             .with_label("name (if applicable)")
             .with_align(label_align_choice);
-        t_y += selection_separation + choicenum.h() + label_height;
+        t_y_left += selection_separation + choicenum.h() + label_height;
 
         let mut choiceden = Choice::default()
-            .with_pos(draw_group.x() + edge_buffer, t_y)
+            .with_pos(draw_group.x() + edge_buffer, t_y_left)
             .with_size(selection_width, selection_height)
             .with_label("scale to")
             .with_align(label_align_choice);
-        t_y += selection_separation + choiceden.h() + label_height;
-
+        t_y_left += selection_separation + choiceden.h() + label_height;
 
         let mut choice_valscale = Choice::default()
-            .with_pos(draw_group.x() + edge_buffer, t_y)
+            .with_pos(draw_group.x() + edge_buffer, t_y_left)
             .with_size(selection_width, selection_height)
             .with_label("number scaling")
             .with_align(label_align_choice);
@@ -185,7 +165,7 @@ impl DrawTab {
         let mut valscale_num = FloatInput::default()
             .with_pos(
                 draw_group.x() + edge_buffer + selection_width + selection_separation,
-                t_y,
+                t_y_left,
             )
             .with_size(selection_width, selection_height)
             .with_label("num (if applicable)")
@@ -193,27 +173,76 @@ impl DrawTab {
 
         // draw_buttons.end();
 
-        let mut t_y = draw_group.y() + edge_buffer;
-
         let mut engage = Button::default()
-            .with_pos(draw_group.x() + draw_group.w() - edge_buffer - button_width, t_y)
+            .with_pos(
+                draw_group.x() + draw_group.w() - edge_buffer - button_width,
+                t_y_right,
+            )
             .with_size(button_width, button_height)
             .with_label("Draw");
-        t_y += button_separation + engage.h();
+        t_y_right += button_separation + engage.h();
+
         let mut quickdraw_states = Button::default()
-            .with_pos(draw_group.x() + draw_group.w() - edge_buffer - button_width, t_y)
+            .with_pos(
+                draw_group.x() + draw_group.w() - edge_buffer - button_width,
+                t_y_right,
+            )
             .with_size(button_width, button_height)
             .with_label("(fast) Draw States");
-        t_y += button_separation + quickdraw_states.h();
+        t_y_right += button_separation + quickdraw_states.h();
+
         let mut quickdraw_countries = Button::default()
-            .with_pos(draw_group.x() + draw_group.w() - edge_buffer - button_width, t_y)
+            .with_pos(
+                draw_group.x() + draw_group.w() - edge_buffer - button_width,
+                t_y_right,
+            )
             .with_size(button_width, button_height)
             .with_label("(fast) Draw Countries");
+        t_y_right += button_separation + quickdraw_countries.h();
 
-        t_y += button_separation + quickdraw_states.h();
+        t_y_right += label_height;
+        let save_selector = Choice::default()
+            .with_pos(
+                draw_group.x() + draw_group.w() - edge_buffer - button_width,
+                t_y_right,
+            )
+            .with_size(button_width, selection_height)
+            .with_align(label_align_choice)
+            .with_label("save selector");
+        t_y_right += button_separation + save_selector.h();
+
+        t_y_right += label_height;
+        let mut preview_selector = Choice::default()
+            .with_pos(
+                draw_group.x() + draw_group.w() - edge_buffer - button_width,
+                t_y_right,
+            )
+            .with_size(button_width, selection_height)
+            .with_align(label_align_choice)
+            .with_label("Preview");
+        t_y_right += button_separation + preview_selector.h();
+
+        t_y_right += label_height;
+        let mut savepath = Input::default()
+            .with_pos(
+                draw_group.x() + draw_group.w() - edge_buffer - button_width,
+                t_y_right,
+            )
+            .with_size(button_width, selection_height)
+            .with_label("save to")
+            .with_align(label_align_choice);
+        t_y_right += button_separation + valscale_num.h();
+
+
+        t_y_right += label_height;
         let mut status = Output::default()
-            .with_pos(draw_group.x() + draw_group.w() - edge_buffer - button_width, t_y)
-            .with_size(button_width, button_height);
+            .with_pos(
+                draw_group.x() + draw_group.w() - edge_buffer - button_width,
+                t_y_right,
+            )
+            .with_size(button_width, selection_height)
+            .with_align(label_align_choice)
+            .with_label("Draw Status");
 
         // let mut quickdraw_states = Button::new(560, 20, 160, 40, "(fast) Draw States");
         // let mut quickdraw_countries = Button::new(560, 80, 160, 40, "(fast) Draw Countries");
@@ -228,7 +257,8 @@ impl DrawTab {
             // Coloring Settings
             // ---------------
             {
-                choicecolor.add_choice(" None| Provinces| StateTemplate| SaveStates| SaveCountries");
+                choicecolor
+                    .add_choice(" None| Provinces| StateTemplate| SaveStates| SaveCountries");
                 choicecolor.set_value(3);
                 // -----
                 choice_watercolor.add_choice(" Default| Custom| As Land");
@@ -240,7 +270,8 @@ impl DrawTab {
                 //
                 custom_watercolor_check.set_callback(read_only_checkbutton);
                 // -----
-                choicelines.add_choice(" None| Provinces| StateTemplate| SaveStates| SaveCountries");
+                choicelines
+                    .add_choice(" None| Provinces| StateTemplate| SaveStates| SaveCountries");
                 choicelines.set_value(3);
                 //
                 choice_waterlines.add_choice(" Yes| No");
@@ -250,7 +281,9 @@ impl DrawTab {
             // Data-Color Settings
             // ---------------
             {
-                draw_data.add_choice(" yes (default color)| yes (amplified default)| yes (custom color)| no");
+                draw_data.add_choice(
+                    " yes (default color)| yes (amplified default)| yes (custom color)| no",
+                );
                 draw_data.set_value(3);
                 draw_data.emit(s, 103);
                 //
@@ -275,10 +308,10 @@ impl DrawTab {
                 choicenum.add_choice(" religion| culture| population");
                 choicenum.set_value(0);
                 choicenum.emit(s, 103); // emit 103 => call DrawTab.lock()
-                //
+                                        //
                 input_name.set_trigger(CallbackTrigger::Changed);
                 input_name.set_callback(move |x| x.set_value(&x.value())); // allows using .do_callback() for updating textcolor
-                // -----
+                                                                           // -----
                 choiceden.add_choice(" total| population| area");
                 choiceden.set_value(0);
                 // -----
@@ -298,6 +331,11 @@ impl DrawTab {
                 quickdraw_countries.emit(s, 101);
                 // -----
                 quickdraw_states.emit(s, 102);
+                // -----
+                preview_selector.add_choice(" Yes| No");
+                preview_selector.set_value(0);
+                // -----
+                savepath.set_value("test");
                 // -----
                 status.set_value("idle");
             }
@@ -323,7 +361,10 @@ impl DrawTab {
             choice_waterlines,
             custom_watercolor,
             custom_watercolor_check,
-            status
+            status,
+            preview_selector,
+            savepath,
+            save_selector
         };
         ret.lock();
         ret
@@ -342,6 +383,15 @@ impl DrawTab {
                 .collect::<String>(),
         );
     }
+    pub fn add_save(&mut self, path: &Path) {
+        self.save_selector.add_choice(path.file_name().unwrap().to_string_lossy().as_ref());
+    }
+    pub fn clear_saves(&mut self) {
+        self.save_selector.clear()
+    }
+    pub fn preview(&self) -> bool {
+        self.preview_selector.value() == 0
+    }
     pub fn lock(&mut self) {
         if let 0 | 1 = self.choicenum.value() {
             self.input_name.set_readonly(false);
@@ -352,10 +402,12 @@ impl DrawTab {
         }
         if let 1 = self.choice_watercolor.value() {
             self.custom_watercolor.set_readonly(false);
-            self.custom_watercolor.set_text_color(Color::from_hex(0x000000));
+            self.custom_watercolor
+                .set_text_color(Color::from_hex(0x000000));
         } else {
             self.custom_watercolor.set_readonly(true);
-            self.custom_watercolor.set_text_color(Color::from_hex(0x999999));
+            self.custom_watercolor
+                .set_text_color(Color::from_hex(0x999999));
         }
         if let 2 = self.draw_data.value() {
             self.custom_color.set_readonly(false);
@@ -375,12 +427,10 @@ impl DrawTab {
         }
         if let 1 = self.choice_valscale.value() {
             self.valscale_num.set_readonly(false);
-            self.valscale_num
-                .set_text_color(Color::from_hex(0x000000));
+            self.valscale_num.set_text_color(Color::from_hex(0x000000));
         } else {
             self.valscale_num.set_readonly(true);
-            self.valscale_num
-                .set_text_color(Color::from_hex(0x999999));
+            self.valscale_num.set_text_color(Color::from_hex(0x999999));
         }
         self.valscale_num.do_callback();
         self.input_name.do_callback();
@@ -397,6 +447,18 @@ impl DrawTab {
     pub fn check_custom_watercolor(&mut self, to: bool) {
         self.custom_watercolor_check.set_value(to)
     }
+    fn savepath(&self) -> String {
+        if self.savepath.value().trim().is_empty() {
+            "none".to_owned()
+        } else {
+            self.savepath.value()
+        }
+    }
+    pub fn get_draw_to(&self) -> PathBuf {
+        let mut ret = PathBuf::from("output").join(self.savepath());
+        ret.set_extension("png");
+        ret
+    }
     fn temp_fix_savestates(&mut self) {
         if self.is_data().unwrap() {
             self.choicecolor.set_value(3);
@@ -408,7 +470,7 @@ impl DrawTab {
             1 => Ok(true),
             2 => Ok(true),
             3 => Ok(false),
-            _ => Err(VicError::temp())
+            _ => Err(VicError::temp()),
         }
     }
     /// Ok(Some(error)) => error happened while preparing data or drawing map. Potentially recoverable, so Info and MapDrawer must be returned.
@@ -420,8 +482,11 @@ impl DrawTab {
         mut mapdrawer: MapDrawer,
         app: &mut App,
     ) -> Result<(Option<VicError>, Info, MapDrawer), VicError> {
-
         self.status.set_value("preparing draw settings");
+        if self.save_selector.value() < 0 {
+            self.status.set_value("no save selected");
+            return Ok((Some(VicError::temp()), info, mapdrawer));
+        }
         if let Err(e) = self.draw_inner(&info, &mut mapdrawer) {
             self.status.set_value("failed at preparing data");
             return Ok((Some(e), info, mapdrawer));
@@ -433,12 +498,15 @@ impl DrawTab {
         thread::spawn({
             let is_data = match self.is_data() {
                 Ok(a) => a,
-                Err(e) => return Ok((Some(e), info, mapdrawer))
+                Err(e) => return Ok((Some(e), info, mapdrawer)),
             };
+            let mut savepath = PathBuf::from("output").join(self.savepath());
+            let save_selector = self.save_selector.value() as usize;
+            savepath.set_extension("png");
             move || {
                 s.send((
                     mapdrawer
-                        .draw(&info, PathBuf::from("output"), is_data)
+                        .draw(&info, save_selector, savepath, is_data)
                         .err(),
                     info,
                     mapdrawer,
@@ -476,9 +544,9 @@ impl DrawTab {
         }
         match self.choice_watercolor.value() {
             0 => mapdrawer.set_sea_color(Some(ColorWrap::to_colorwrap("x0064C8")?)),
-            1 if self.custom_watercolor_check.is_checked() => {
-                mapdrawer.set_sea_color(Some(ColorWrap::to_colorwrap(&self.custom_watercolor.value())?))
-            }
+            1 if self.custom_watercolor_check.is_checked() => mapdrawer.set_sea_color(Some(
+                ColorWrap::to_colorwrap(&self.custom_watercolor.value())?,
+            )),
             2 => mapdrawer.set_sea_color(None),
             _ => return Err(VicError::temp()),
         }
@@ -488,7 +556,7 @@ impl DrawTab {
             _ => return Err(VicError::temp()),
         }
         if !self.is_data()? {
-            return Ok(())
+            return Ok(());
         }
         match self.default_color.value() {
             0 => mapdrawer.darkmode(ColorWrap::to_colorwrap("xFFFFFF")?),
@@ -499,16 +567,16 @@ impl DrawTab {
             _ => return Err(VicError::temp()),
         }
         let (num, col) = match self.choicenum.value() {
-            0 => info.religion(&self.input_name.value())?,
-            1 => info.culture(&self.input_name.value())?,
-            2 => (info.population()?, None),
+            0 => info.religion(&self.input_name.value(), self.save_selector.value() as usize)?,
+            1 => info.culture(&self.input_name.value(), self.save_selector.value() as usize)?,
+            2 => (info.population(self.save_selector.value() as usize)?, None),
             _ => return Err(VicError::temp()),
         };
         mapdrawer.set_numerator(Some(num));
         match self.choiceden.value() {
             0 => mapdrawer.set_denominator(None),
-            1 => mapdrawer.set_denominator(Some(info.population()?)),
-            2 => mapdrawer.set_denominator(Some(info.area()?)),
+            1 => mapdrawer.set_denominator(Some(info.population(self.save_selector.value() as usize)?)),
+            2 => mapdrawer.set_denominator(Some(info.area(self.save_selector.value() as usize)?)),
             _ => return Err(VicError::temp()),
         }
         match self.draw_data.value() {
@@ -525,7 +593,7 @@ impl DrawTab {
             1 => mapdrawer.set_data_scale({
                 match self.valscale_num.value().parse() {
                     Ok(a) => Some((|x, y| x.powf(y), a)),
-                    Err(_) => None
+                    Err(_) => None,
                 }
             }),
             _ => return Err(VicError::temp()),
@@ -541,7 +609,7 @@ impl DrawTab {
         app: &mut App,
     ) -> Result<(Option<VicError>, Info, MapDrawer), VicError> {
         self.choicecolor.set_value(4);
-        self.draw_data.set_value(1);
+        self.draw_data.set_value(3);
         self.draw(info, mapdrawer, app)
     }
     pub fn quick_draw_states(
@@ -551,7 +619,7 @@ impl DrawTab {
         app: &mut App,
     ) -> Result<(Option<VicError>, Info, MapDrawer), VicError> {
         self.choicecolor.set_value(3);
-        self.draw_data.set_value(1);
+        self.draw_data.set_value(3);
         self.draw(info, mapdrawer, app)
     }
 }

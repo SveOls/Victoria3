@@ -31,9 +31,9 @@ pub struct MapDrawer {
     denominator: Option<HashMap<usize, usize>>,
     /// these two hashmaps might hog space. idk.
     lines: Coloring,
-    premade_lines: HashMap<Coloring, ImageWrap>,
+    premade_lines: HashMap<(usize, Coloring), ImageWrap>,
     color_map: Coloring,
-    premade_color: HashMap<Coloring, ImageWrap>,
+    premade_color: HashMap<(usize, Coloring), ImageWrap>,
     /// color of ocean
     sea_color: Option<ColorWrap>,
     /// color of data.
@@ -44,7 +44,7 @@ pub struct MapDrawer {
     scale_fn: Option<(fn(f64, f64) -> f64, f64)>,
     /// memoization of province color to its color and owner. Separated options are for cases where
     /// the color is erased, but the other data is still relevant.
-    owners: HashMap<Rgb<u8>, Option<([Option<Rgb<u8>>; 3], Option<[usize; 2]>)>>,
+    owners: HashMap<(usize, Rgb<u8>), Option<([Option<Rgb<u8>>; 3], Option<[usize; 2]>)>>,
 }
 
 impl MapDrawer {
@@ -83,12 +83,8 @@ impl MapDrawer {
     pub fn set_color_map(&mut self, inp: Coloring) {
         self.color_map = inp
     }
-    pub fn clear(self) -> Self {
-        Self {
-            premade_lines: self.premade_lines,
-            premade_color: self.premade_color,
-            ..Self::default()
-        }
+    pub fn clear(&mut self) {
+        *self = Self::default()
     }
     pub fn extremify(&mut self, stretch: bool) {
         if self.data_color.is_none() {
@@ -99,21 +95,20 @@ impl MapDrawer {
         }
     }
 
-    pub fn draw(&mut self, info: &Info, save_to: PathBuf, map_data: bool) -> Result<(), VicError> {
-
+    pub fn draw(&mut self, info: &Info, save_id: usize, save_to: PathBuf, map_data: bool) -> Result<(), VicError> {
         let mut temp = Coloring::StateTemplates;
         std::mem::swap(&mut temp, &mut self.color_map);
-        self.draw_map_coloring(info)?;
+        self.draw_map_coloring(info, save_id)?;
         std::mem::swap(&mut temp, &mut self.color_map);
 
-        self.draw_map_coloring(info)?;
-        self.draw_lines_coloring(info)?;
+        self.draw_map_coloring(info, save_id)?;
+        self.draw_lines_coloring(info, save_id)?;
 
-        let mut saver = self.premade_color.get(&self.color_map).unwrap().clone();
+        let mut saver = self.premade_color.get(&(save_id, self.color_map)).unwrap().clone();
 
         if let Some(sea_color) = self.sea_color {
             for pix in saver.pixels_mut() {
-                if self.owners.get(pix).map_or(false, |x| x.is_none()) {
+                if self.owners.get(&(save_id, *pix)).map_or(false, |x| x.is_none()) {
                     *pix = sea_color.unravel();
                 }
             }
@@ -140,8 +135,7 @@ impl MapDrawer {
             }
 
             if let Some((f, a)) = self.scale_fn {
-                data.values_mut()
-                    .for_each(|x| *x = f(*x, a));
+                data.values_mut().for_each(|x| *x = f(*x, a));
             }
 
             let max = data.values().fold(0.0f64, |a, &b| a.max(b));
@@ -150,9 +144,8 @@ impl MapDrawer {
             data.values_mut()
                 .for_each(|x| *x = (*x - min) / (max - min));
 
-
             let map = info.get_map()?;
-            let save = info.get_save()?;
+            let save = info.get_save(save_id)?;
 
             let mut datar: HashMap<Rgb<u8>, Rgb<u8>> = HashMap::new();
             saver.pixels_mut().for_each(|x| {
@@ -194,24 +187,26 @@ impl MapDrawer {
         if self.lines != Coloring::None {
             saver
                 .pixels_mut()
-                .zip(self.premade_lines.get(&self.lines).unwrap().pixels())
-                .filter(|&(_, &y)| (y == Rgb::from([0, 0, 0])) || (y == Rgb::from([127, 127, 127]) && self.sea_province_borders))
+                .zip(self.premade_lines.get(&(save_id, self.lines)).unwrap().pixels())
+                .filter(|&(_, &y)| {
+                    (y == Rgb::from([0, 0, 0]))
+                        || (y == Rgb::from([127, 127, 127]) && self.sea_province_borders)
+                })
                 .for_each(|(x, _)| *x = Rgb::from([0, 0, 0]))
-        } else {
         }
 
-        crate::utilities::save3(save_to, "test.png", &saver)?;
+        crate::utilities::save3(save_to, &saver)?;
 
         Ok(())
     }
-    fn draw_lines_coloring(&mut self, info: &Info) -> Result<(), VicError> {
-        let base_map = match self.premade_color.get(&self.lines) {
+    fn draw_lines_coloring(&mut self, info: &Info, save_id: usize) -> Result<(), VicError> {
+        let base_map = match self.premade_color.get(&(save_id, self.lines)) {
             Some(a) => a,
             None => {
                 std::mem::swap(&mut self.lines, &mut self.color_map);
-                self.draw_map_coloring(info)?;
+                self.draw_map_coloring(info, save_id)?;
                 std::mem::swap(&mut self.lines, &mut self.color_map);
-                self.premade_color.get(&self.lines).unwrap()
+                self.premade_color.get(&(save_id, self.lines)).unwrap()
             }
         };
         let cross =
@@ -234,8 +229,20 @@ impl MapDrawer {
                         ),
                 )
                 .map(|x| [x.0, x.1 .0, x.1 .1 .0, x.1 .1 .1 .0, x.1 .1 .1 .1])
-                .map(|x| (x.iter().filter_map(|&x| x).fold(true, |a, b| a && self.owners.get(b).map(|y| y.is_none()).unwrap_or(false)), x))
-                .map(|(a, x)| (a, x.iter().filter_map(|&x| x).collect::<HashSet<_>>().len() == 1));
+                .map(|x| {
+                    (
+                        x.iter().filter_map(|&x| x).fold(true, |a, b| {
+                            a && self.owners.get(&(save_id, *b)).map(|y| y.is_none()).unwrap_or(false)
+                        }),
+                        x,
+                    )
+                })
+                .map(|(a, x)| {
+                    (
+                        a,
+                        x.iter().filter_map(|&x| x).collect::<HashSet<_>>().len() == 1,
+                    )
+                });
 
         let mut blank = base_map.new_empty(ColorWrap::from(Rgb::from([0xFF, 0xFF, 0xFF])));
 
@@ -251,23 +258,23 @@ impl MapDrawer {
             }
         }
 
-        self.premade_lines.insert(self.lines, blank);
+        self.premade_lines.insert((save_id, self.lines), blank);
 
         Ok(())
     }
-    fn draw_map_coloring(&mut self, info: &Info) -> Result<(), VicError> {
-        if self.premade_color.contains_key(&self.color_map) {
+    fn draw_map_coloring(&mut self, info: &Info, save_id: usize) -> Result<(), VicError> {
+        if self.premade_color.contains_key(&(save_id, self.color_map)) {
             return Ok(());
         }
         let province_map = self
             .premade_color
-            .remove(&Coloring::Provinces)
+            .remove(&(save_id, Coloring::Provinces))
             .unwrap_or(ImageWrap::new(self.get_path()?, self.resize)?);
 
         if self.color_map == Coloring::None {
             let new_map = province_map.new_empty(ColorWrap::from(Rgb::from([0xFF, 0xFF, 0xFF])));
-            self.premade_color.insert(Coloring::Provinces, province_map);
-            self.premade_color.insert(self.color_map, new_map);
+            self.premade_color.insert((save_id, Coloring::Provinces), province_map);
+            self.premade_color.insert((save_id, self.color_map), new_map);
             return Ok(());
         }
 
@@ -276,11 +283,11 @@ impl MapDrawer {
         let mut memo = HashMap::new();
 
         let map = info.get_map()?;
-        let save = info.get_save()?;
+        let save = info.get_save(save_id)?;
 
         for color in new_map.pixels_mut() {
             let updatedcolor;
-            match self.owner_getter(color)? {
+            match self.owner_getter(color, save_id)? {
                 Some((Some(newcolor), _)) => {
                     updatedcolor = newcolor;
                 }
@@ -297,7 +304,7 @@ impl MapDrawer {
                                         .ok_or(VicError::named("no province index?"))?,
                                 )
                                 .map(|(x, y)| [x.id(), y.id()]);
-                            self.owners.insert(*color, Some(([None; 3], temp_owners)));
+                            self.owners.insert((save_id, *color), Some(([None; 3], temp_owners)));
                             match self.color_map {
                                 Coloring::None | Coloring::Provinces => unreachable!(),
                                 Coloring::SaveCountries => Ok(temp_owners.map(|x| x[1])),
@@ -320,58 +327,59 @@ impl MapDrawer {
                                 Coloring::Provinces => unreachable!(),
                             }
                         });
-                        self.owner_inserter(color, updatedcolor);
+                        self.owner_inserter(color, updatedcolor, save_id);
                     } else {
                         updatedcolor = *color;
-                        self.owners.insert(*color, None);
+                        self.owners.insert((save_id, *color), None);
                     }
                 }
                 None => updatedcolor = *color,
             }
             *color = updatedcolor;
         }
-        self.premade_color.insert(Coloring::Provinces, province_map);
-        self.premade_color.insert(self.color_map, new_map);
+        self.premade_color.insert((save_id, Coloring::Provinces), province_map);
+        self.premade_color.insert((save_id, self.color_map), new_map);
         Ok(())
     }
 
     fn owner_getter(
         &self,
         color: &Rgb<u8>,
+        save_id: usize
     ) -> Result<Option<(Option<Rgb<u8>>, Option<usize>)>, VicError> {
         match self.color_map {
             Coloring::StateTemplates => Ok(self
                 .owners
-                .get(color)
+                .get(&(save_id, *color))
                 .map(|i| i.map(|(x, y)| (x[0], y.map(|z| z[0]))))
                 .unwrap_or(Some((None, None)))),
             Coloring::SaveStates => Ok(self
                 .owners
-                .get(color)
+                .get(&(save_id, *color))
                 .map(|i| i.map(|(x, y)| (x[1], y.map(|z| z[0]))))
                 .unwrap_or(Some((None, None)))),
             Coloring::SaveCountries => Ok(self
                 .owners
-                .get(color)
+                .get(&(save_id, *color))
                 .map(|i| i.map(|(x, y)| (x[2], y.map(|z| z[1]))))
                 .unwrap_or(Some((None, None)))),
             Coloring::Provinces => Ok(Some((Some(*color), None))),
             Coloring::None => Err(VicError::temp()),
         }
     }
-    fn owner_inserter(&mut self, color: &Rgb<u8>, updatedcolor: Rgb<u8>) {
+    fn owner_inserter(&mut self, color: &Rgb<u8>, updatedcolor: Rgb<u8>, save_id: usize) {
         match self.color_map {
             Coloring::StateTemplates => self
                 .owners
-                .entry(*color)
+                .entry((save_id, *color))
                 .and_modify(|a| a.iter_mut().for_each(|x| x.0[0] = Some(updatedcolor))),
             Coloring::SaveStates => self
                 .owners
-                .entry(*color)
+                .entry((save_id, *color))
                 .and_modify(|a| a.iter_mut().for_each(|x| x.0[1] = Some(updatedcolor))),
             Coloring::SaveCountries => self
                 .owners
-                .entry(*color)
+                .entry((save_id, *color))
                 .and_modify(|a| a.iter_mut().for_each(|x| x.0[2] = Some(updatedcolor))),
             Coloring::Provinces => unreachable!(),
             Coloring::None => unreachable!(),

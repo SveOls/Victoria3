@@ -1,14 +1,4 @@
-use std::path::{Path, PathBuf};
-
-use fltk::{
-    button::{Button, CheckButton},
-    group::{Group, Pack, Tabs},
-    output::Output,
-    prelude::{GroupExt, InputExt, WidgetExt},
-};
-
 use super::*;
-use crate::data::DataTypes;
 
 pub struct ScanTab {
     save_check: CheckButton,
@@ -20,7 +10,7 @@ pub struct ScanTab {
 }
 
 impl ScanTab {
-    pub fn new(tab: &Tabs, s: fltk::app::Sender<usize>, tab_box_height: i32) -> Self {
+    pub fn new(tab: &Tabs, s: app::Sender<usize>, tab_box_height: i32) -> Self {
         //let tab_box_height = height of box
         let button_width = 140; // width of button
         let button_height = 40; // height of button
@@ -130,14 +120,14 @@ impl ScanTab {
     pub fn path(&mut self, datatype: DataTypes) -> Option<&Path> {
         match datatype {
             DataTypes::Map => {
-                if dbg!(dbg!(self.game_text_pathbuf.as_path()) != Path::new("")) {
+                if self.game_text_pathbuf.as_path() != Path::new("") {
                     Some(self.game_text_pathbuf.as_path())
                 } else {
                     None
                 }
             }
             DataTypes::Save => {
-                if dbg!(dbg!(self.save_text_pathbuf.as_path()) != Path::new("")) {
+                if self.save_text_pathbuf.as_path() != Path::new("") {
                     Some(self.save_text_pathbuf.as_path())
                 } else {
                     None

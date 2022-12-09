@@ -4,7 +4,6 @@ use std::path::Path;
 pub mod map;
 pub mod save;
 
-use crate::draw::MapDrawer;
 use crate::error::VicError;
 use crate::wrappers::ColorWrap;
 use map::Map;
@@ -18,33 +17,31 @@ pub enum DataTypes {
 
 pub struct Info {
     map: Option<Map>,
-    save: Option<Save>,
-    drawer: MapDrawer,
+    save: Vec<Save>
 }
 
 impl Info {
     pub fn new() -> Self {
         Self {
             map: None,
-            save: None,
-            drawer: MapDrawer::default(),
+            save: Vec::new()
         }
     }
     pub fn load(&mut self, inp: &Path, load_type: DataTypes) -> Result<(), VicError> {
         match load_type {
-            DataTypes::Map => Ok(self.map = Some(Map::new(inp)?)),
-            DataTypes::Save => Ok(self.save = Some(Save::new(inp)?)),
+            DataTypes::Map => self.map = Some(Map::new(inp)?),
+            DataTypes::Save => self.save.push(Save::new(inp)?),
         }
+        Ok(())
     }
     pub fn clear(&mut self, inp: DataTypes) {
         match inp {
             DataTypes::Map => self.map = None,
-            DataTypes::Save => self.save = None,
+            DataTypes::Save => self.save = Vec::new(),
         }
-        self.save = None
     }
-    pub fn get_save(&self) -> Result<&Save, VicError> {
-        self.save.as_ref().ok_or(VicError::MapError(format!(
+    pub fn get_save(&self, i: usize) -> Result<&Save, VicError> {
+        self.save.get(i).ok_or(VicError::MapError(format!(
             "Info tried accessing save when save is none (save data not initialized)"
         )))
     }
@@ -55,12 +52,13 @@ impl Info {
     }
     pub fn culture(
         &self,
-        test: &str,
+        culture: &str,
+        save_id: usize
     ) -> Result<(HashMap<usize, usize>, Option<ColorWrap>), VicError> {
         self.get_map().and_then(|m| {
-            self.get_save().and_then(|q| {
+            self.get_save(save_id).and_then(|q| {
                 q.cultures()
-                    .find(|i| i.name() == test)
+                    .find(|i| i.name() == culture)
                     .map(|y| {
                         q.pops()
                             .map(|(s, p)| {
@@ -91,8 +89,9 @@ impl Info {
     pub fn religion(
         &self,
         religion: &str,
+        save_id: usize
     ) -> Result<(HashMap<usize, usize>, Option<ColorWrap>), VicError> {
-        self.get_save().and_then(|q| {
+        self.get_save(save_id).and_then(|q| {
             q.pops()
                 .map(|(s, p)| {
                     p.filter_map(|p| {
@@ -114,8 +113,8 @@ impl Info {
                 })
         })
     }
-    pub fn population(&self) -> Result<HashMap<usize, usize>, VicError> {
-        self.get_save().and_then(|q| {
+    pub fn population(&self, save_id: usize) -> Result<HashMap<usize, usize>, VicError> {
+        self.get_save(save_id).and_then(|q| {
             q.pops()
                 .map(|(s, p)| {
                     p.map(|p| p.size())
@@ -125,8 +124,8 @@ impl Info {
                 .collect()
         })
     }
-    pub fn area(&self) -> Result<HashMap<usize, usize>, VicError> {
-        self.get_save().and_then(|q| {
+    pub fn area(&self, save_id: usize) -> Result<HashMap<usize, usize>, VicError> {
+        self.get_save(save_id).and_then(|q| {
             q.states()
                 .map(|s| self.get_map().map(|x| (s.id(), x.area(s.provinces()))))
                 .collect()
