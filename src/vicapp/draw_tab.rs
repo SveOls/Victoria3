@@ -543,7 +543,7 @@ impl DrawTab {
             _ => return Err(VicError::temp()),
         }
         match self.choice_watercolor.value() {
-            0 => mapdrawer.set_sea_color(Some(ColorWrap::to_colorwrap("x0064C8")?)),
+            0 => mapdrawer.set_sea_color(Some(ColorWrap::to_colorwrap("x002266")?)),
             1 if self.custom_watercolor_check.is_checked() => mapdrawer.set_sea_color(Some(
                 ColorWrap::to_colorwrap(&self.custom_watercolor.value())?,
             )),
