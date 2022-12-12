@@ -6,6 +6,7 @@
 #![allow(dead_code)]
 #![allow(unreachable_code)]
 
+use serde;
 use glob::{glob, Paths, PatternError};
 use image::{ImageBuffer, Pixel};
 use std::error::Error;
@@ -14,7 +15,38 @@ use std::io::{prelude::*, BufReader};
 use std::str;
 use std::{fs, io};
 
-pub fn tester() -> Result<(), Box<dyn Error>> {
+use crate::error::VicError;
+use jomini::{JominiDeserialize, TextDeserializer};
+
+#[derive(JominiDeserialize, Debug)]
+struct MetaData {
+    save_game_version: u64,
+    version: String,
+    game_date: String,
+    name: String,
+}
+
+#[derive(JominiDeserialize, Debug)]
+struct Date {
+    date: String
+}
+
+#[derive(JominiDeserialize, Debug)]
+struct Pops {
+    pops: Vec<Pop>
+}
+
+#[derive(JominiDeserialize, Debug)]
+struct Pop {
+    id: usize,
+}
+
+#[derive(JominiDeserialize, Debug)]
+struct Save {
+    meta_data: MetaData,
+}
+
+pub fn jomini() -> Result<(), VicError> {
     let mut zipper: zip::ZipArchive<std::fs::File>;
     let mut writer: Vec<u8> = vec![];
     let file: zip::read::ZipFile;
@@ -30,87 +62,26 @@ pub fn tester() -> Result<(), Box<dyn Error>> {
 
     let mut file = file;
     io::copy(&mut file, &mut writer)?;
-    let stert = std::str::from_utf8(&writer)?;
+    // let data = std::str::from_utf8(&writer)?;
 
-    // let sav1 = super::save::Save::new(stert)?;
+    let a = jomini::TextTape::from_slice(&writer).unwrap();
 
-    panic!();
+    for i in a.tokens().iter().enumerate() {
+        // println!("{:?}", i.1);
+        if i.0 == 89 {
+            break;
+        }
+    }
+
+    // let actual: Save = TextDeserializer::from_utf8_slice(&writer).unwrap();
+
+    // println!("{:?}", actual);
+    // panic!("{}", stert);
 
     Ok(())
 }
 
-// fn printer(mut temp: SaveIterator, depth: usize) {
-//     while let Some(data) = temp.next() {
-//         if depth == 0 {
-//             // wait();
-//         }
-//         match data {
-//             DataStructure::Itr((a, b)) => {
-//                 // println!();
-//                 for i in 0..depth {
-//                     // print!("\t")
-//                 }
-//                 // print!("{} -> ", a);
-//                 printer(b, depth + 1);
-//             }
-//             DataStructure::Val(a) => {
-//                 // println!(" -> {}", a);
-//             }
-//         }
-//     }
-// }
 
-// trait GetData {
-//     fn consume(&self, inp: SaveIterator) {}
-// }
-
-// struct SaveIterator<'a>(Box<dyn Iterator<Item = &'a str> + 'a>);
-
-// impl<'a> SaveIterator<'a> {
-//     fn new(data: &'a str, first: bool) -> Self {
-
-//         if !first {
-//             // println!("stuff: {:?}", data);
-//         }
-
-//         let mut depth = 0;
-//         let mut para = false;
-//         let mut closure = move |c: char| -> bool {
-//             match c {
-//                 '{' => depth += 1,
-//                 '}' => depth -= 1,
-//                 '"' => para  =! para,
-//                 _ => {}
-//             }
-//             c.is_whitespace() && depth == 0 && !para
-//         };
-//         SaveIterator(Box::new(data.trim().split(closure).map(|u| u.trim()).filter(|p| !p.is_empty())))
-//     }
-// }
-
-// enum DataStructure<'a> {
-//     Itr((&'a str, SaveIterator<'a>)),
-//     Val(&'a str)
-// }
-
-// impl<'a> DataStructure<'a> {
-//     // fn data_harvest()
-// }
-
-// impl<'a> Iterator for SaveIterator<'a> {
-
-//     type Item = DataStructure<'a>;
-
-//     fn next(&mut self) -> Option<Self::Item> {
-
-//         self.0.next()//.inspect(|w| println!("\n{:?}\n", w))
-//             .and_then(|x| Some(x.split_once(|c| c == '=' || c == '{')//.inspect(|w| println!("\n{:?}\n", w))
-//                 .map_or_else(
-//                     || DataStructure::Val(x),
-//                     |y| DataStructure::Itr((y.0, SaveIterator::new(y.1.strip_prefix('{').and_then(|f| f.strip_suffix('}')).unwrap_or(y.1), false)))))
-//             )
-//     }
-// }
 
 pub fn wait() -> bool {
     use std::io::{stdin, stdout, Write};

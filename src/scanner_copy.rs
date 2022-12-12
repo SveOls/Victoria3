@@ -1,4 +1,3 @@
-
 use std::io;
 use std::path::PathBuf;
 
@@ -8,27 +7,13 @@ use crate::error::VicError;
 
 pub trait GetMapData: Sized {
     fn get_data_from(inp: PathBuf) -> Result<Vec<Self>, VicError> {
-
         let mut ret = Vec::new();
 
         for entry in glob(&inp.as_path().to_str().unwrap())? {
 
             let t_file = std::fs::read(entry?)?;
 
-            let mut comment = false;
-            let mut para = false;
-            let closure = move |&c: &char | -> bool {
-                if c == '"' {
-                    para ^= para
-                } else if c == '#' && !para {
-                    comment = true
-                } else if c == '\n' && comment {
-                    comment = false
-                }
-                !comment
-            };
-
-            let data = &std::str::from_utf8(&t_file)?.chars().filter(closure).collect::<String>();
+            let data = &std::str::from_utf8(&t_file)?;
 
             let temp = MapIterator::new(data, DataFormat::Labeled);
 
@@ -36,21 +21,30 @@ pub trait GetMapData: Sized {
         }
         Ok(ret)
     }
-    fn new_vec(_: PathBuf) -> Result<Vec<Self>, VicError> { unimplemented!() }
+    fn new_vec(_: PathBuf) -> Result<Vec<Self>, VicError> {
+        unimplemented!()
+    }
     fn consume_vec(inp: MapIterator, database: Option<&str>) -> Result<Vec<Self>, VicError> {
         if let Some(a) = database {
             if let Some(DataStructure::Itr([_, a])) = inp.into_iter().find(|x| x.name(a)) {
-                MapIterator::new(a, DataFormat::Labeled).into_iter().map(|x| Self::consume_one(x)).collect()
+                MapIterator::new(a, DataFormat::Labeled)
+                    .into_iter()
+                    .map(|x| Self::consume_one(x))
+                    .collect()
             } else {
-                Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, format!("Unimplemented error")))))
+                Err(VicError::Other(Box::new(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Unimplemented error"),
+                ))))
             }
         } else {
             inp.into_iter().map(|x| Self::consume_one(x)).collect()
         }
     }
-    fn consume_one(_:   DataStructure) -> Result<Self, VicError> { unimplemented!() }
+    fn consume_one(_: DataStructure) -> Result<Self, VicError> {
+        unimplemented!()
+    }
 }
-
 
 /// The format of the content of b in DataStructure::Itr((a[^label], b[^data])).
 ///
@@ -88,34 +82,48 @@ pub enum DataFormat {
     ///
     /// output: panics!
     ///
-    None
+    None,
 }
 
-pub struct MapIterator<'a> {
-    data:    Box<dyn Iterator<Item = &'a str> + 'a>,
+pub struct MapIterator {
+    data: Box<MapIterator>,
     version: DataFormat,
 }
 
-
-
 impl<'a> MapIterator<'a> {
     pub fn new(data: &'a str, format: DataFormat) -> Self {
-
         let mut para = false;
         let mut eq = false;
         let mut depth = 0;
         let mut comment = false;
         let mut text_encountered = false;
-        let mut color = 0;
+        let mut hsv360 = 0;
+        let mut hsv = 0;
+        let mut rgb = 0;
 
         let closure = move |c: char| -> bool {
             match c {
-                'c' if color == 0 => color += 1,
-                'o' if color == 1 => color += 1,
-                'l' if color == 2 => color += 1,
-                'o' if color == 3 => color += 1,
-                'r' if color == 4 => color += 1,
-                _ if color != 5 => color = 0,
+                'r' if rgb == 0 => rgb += 1,
+                'g' if rgb == 1 => rgb += 1,
+                'b' if rgb == 2 => rgb += 1,
+                a if !a.is_whitespace() && a != '{' && a != '}' => rgb = 0,
+                _ => {}
+            }
+            match c {
+                'h' if hsv == 0 => hsv += 1,
+                's' if hsv == 1 => hsv += 1,
+                'v' if hsv == 2 => hsv += 1,
+                a if !a.is_whitespace() && a != '{' && a != '}' => hsv = 0,
+                _ => {}
+            }
+            match c {
+                'h' if hsv360 == 0 => hsv360 += 1,
+                's' if hsv360 == 1 => hsv360 += 1,
+                'v' if hsv360 == 2 => hsv360 += 1,
+                '3' if hsv360 == 3 => hsv360 += 1,
+                '6' if hsv360 == 4 => hsv360 += 1,
+                '0' if hsv360 == 5 => hsv360 += 1,
+                a if !a.is_whitespace() && a != '{' && a != '}' => hsv360 = 0,
                 _ => {}
             }
             // para detects plain text
@@ -135,16 +143,19 @@ impl<'a> MapIterator<'a> {
                 }
                 if match format {
                     // single never splits
-                    DataFormat::Single  => false,
+                    DataFormat::Single => false,
                     // multi splits on all whitespace
-                    DataFormat::MultiVal | DataFormat::MultiItr   => c.is_whitespace() && depth == 0,
+                    DataFormat::MultiVal | DataFormat::MultiItr => c.is_whitespace() && depth == 0,
                     // labeled splits on whitespace if depth == 0 and text encountered after split
-                    DataFormat::Labeled => eq && text_encountered && (c == '\n' || (c == '\t' && color != 5)) && depth == 0,
-                    DataFormat::None    => unreachable!()
+                    DataFormat::Labeled => {
+                        eq && text_encountered
+                            && (c == '\n' || (c == '\t' && hsv != 3 && hsv360 != 6 && rgb != 3))
+                            && depth == 0
+                    }
+                    DataFormat::None => unreachable!(),
                 } {
                     eq = false;
                     text_encountered = false;
-                    color = 0;
                     true
                 } else {
                     false
@@ -156,16 +167,16 @@ impl<'a> MapIterator<'a> {
         let ret_data = data.trim_start_matches('\u{feff}').trim();
         // println!("{}", ret_data);
         let ret_data = match format {
-            DataFormat::Labeled | DataFormat::MultiVal | DataFormat::MultiItr => {
-                ret_data.strip_prefix('{')
-                .and_then(|x| Some(x.strip_suffix('}').unwrap().trim())).unwrap_or(ret_data)
-            }
-            _ => ret_data
+            DataFormat::Labeled | DataFormat::MultiVal | DataFormat::MultiItr => ret_data
+                .strip_prefix('{')
+                .and_then(|x| Some(x.strip_suffix('}').unwrap().trim()))
+                .unwrap_or(ret_data),
+            _ => ret_data,
         };
 
         Self {
             data: Box::new(ret_data.split(closure).filter(|x| !x.is_empty())),
-            version: format
+            version: format,
         }
     }
     pub fn get_vec(self) -> Result<Vec<&'a str>, VicError> {
@@ -176,9 +187,7 @@ impl<'a> MapIterator<'a> {
     }
 }
 
-
 impl<'a> Iterator for MapIterator<'a> {
-
     type Item = DataStructure<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -189,26 +198,21 @@ impl<'a> Iterator for MapIterator<'a> {
                 // If a data structure that should be labeled *isn't*, return Val(a) instead of Itr((a.0, a.1))
                 match temp.split_once('=') {
                     Some(temp2) => Some(DataStructure::Itr([temp2.0.trim(), temp2.1.trim()])),
-                    None        => Some(DataStructure::Val(temp))
+                    None => Some(DataStructure::Val(temp)),
                 }
             }
-            DataFormat::Single => {
-                Some(DataStructure::Val(temp))
-            }
-            DataFormat::MultiItr => {
-                Some(DataStructure::Itr(["", temp]))
-            }
-            DataFormat::MultiVal => {
-                Some(DataStructure::Val(temp))
-            }
+            DataFormat::Single => Some(DataStructure::Val(temp)),
+            DataFormat::MultiItr => Some(DataStructure::Itr(["", temp])),
+            DataFormat::MultiVal => Some(DataStructure::Val(temp)),
             DataFormat::None => {
-                panic!("Tried to iterate MapIterator with DataFormat = None: {:?}", self.data.next())
+                panic!(
+                    "Tried to iterate MapIterator with DataFormat = None: {:?}",
+                    self.data.next()
+                )
             }
         }
     }
 }
-
-
 
 /// Itr -> owns tuple (&str, MapIterator).
 /// &str is the label of the data in MapIterator.
@@ -265,9 +269,8 @@ impl<'a> Iterator for MapIterator<'a> {
 #[derive(Debug)]
 pub enum DataStructure<'a> {
     Itr([&'a str; 2]),
-    Val(&'a str)
+    Val(&'a str),
 }
-
 
 impl<'a> DataStructure<'a> {
     pub fn name(&self, rhs: &str) -> bool {
@@ -280,13 +283,16 @@ impl<'a> DataStructure<'a> {
     pub fn info(&self) -> &[&'a str] {
         match self {
             DataStructure::Itr(a) => a,
-            DataStructure::Val(a) => std::array::from_ref(a)
+            DataStructure::Val(a) => std::array::from_ref(a),
         }
     }
     pub fn itr_info(self) -> Result<[&'a str; 2], VicError> {
         match self {
             DataStructure::Itr(a) => Ok(a),
-            _ => Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, format!("Unimplemented error in map_scanner::itr_info: >{self:?}<")))))
+            _ => Err(VicError::Other(Box::new(io::Error::new(
+                io::ErrorKind::Other,
+                format!("Unimplemented error in map_scanner::itr_info: >{self:?}<"),
+            )))),
         }
     }
     pub fn new(inp: &'a str) -> Self {
@@ -295,10 +301,10 @@ impl<'a> DataStructure<'a> {
     pub fn val_info(self) -> Result<&'a str, VicError> {
         match self {
             DataStructure::Val(a) => Ok(a),
-            DataStructure::Itr([a, _]) => {
-                Err(VicError::Other(Box::new(io::Error::new(io::ErrorKind::Other, format!("Unimplemented error in map_scanner::val_info: >{a:?}<")))))
-            }
+            DataStructure::Itr([a, _]) => Err(VicError::Other(Box::new(io::Error::new(
+                io::ErrorKind::Other,
+                format!("Unimplemented error in map_scanner::val_info: >{a:?}<"),
+            )))),
         }
     }
 }
-

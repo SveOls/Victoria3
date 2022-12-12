@@ -15,9 +15,19 @@ mod wrappers;
 
 fn main() -> Result<(), VicError> {
 
-
-
-    vicapp::run()?;
+    let args: Vec<_> = std::env::args().collect();
+    let mut count = -1;
+    for arg in args {
+        count += 1;
+        match arg.as_str() {
+            "test" => testing::jomini()?,
+            _ => {}
+        }
+    }
+    if count == 0 {
+        vicapp::run()?;
+    }
+    Ok(())
 
     // arable land
     // let mut d = HashMap::new();
@@ -54,5 +64,4 @@ fn main() -> Result<(), VicError> {
     // }
 
 
-    Ok(())
 }
