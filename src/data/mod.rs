@@ -2,7 +2,9 @@ use std::collections::HashMap;
 use std::path::Path;
 
 pub mod map;
+pub mod map2;
 pub mod save;
+pub mod save2;
 
 use crate::error::VicError;
 use crate::wrappers::ColorWrap;

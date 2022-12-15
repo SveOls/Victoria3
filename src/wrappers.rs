@@ -177,6 +177,10 @@ impl ColorWrap {
             ])),
         }
     }
+    pub fn from_vec(inp: Vec<String>) -> Result<Self, VicError> {
+        let a = inp.iter().flat_map(|x| x.chars().chain(std::iter::once(' '))).collect::<String>();
+        Self::to_colorwrap(&a)
+    }
     /// accepts "format{num num num}"
     ///
     /// whitespace acceptable anywhere (except between num)

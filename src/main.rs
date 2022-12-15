@@ -8,6 +8,7 @@ mod data;
 mod draw;
 mod error;
 mod scanner;
+mod scanner_copy;
 mod testing;
 mod utilities;
 mod vicapp;

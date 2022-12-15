@@ -16,35 +16,12 @@ use std::str;
 use std::{fs, io};
 
 use crate::error::VicError;
-use jomini::{JominiDeserialize, TextDeserializer};
+use jomini::{JominiDeserialize, TextDeserializer, TextToken, TextTape, Scalar};
 
-#[derive(JominiDeserialize, Debug)]
-struct MetaData {
-    save_game_version: u64,
-    version: String,
-    game_date: String,
-    name: String,
-}
 
-#[derive(JominiDeserialize, Debug)]
-struct Date {
-    date: String
-}
 
-#[derive(JominiDeserialize, Debug)]
-struct Pops {
-    pops: Vec<Pop>
-}
 
-#[derive(JominiDeserialize, Debug)]
-struct Pop {
-    id: usize,
-}
 
-#[derive(JominiDeserialize, Debug)]
-struct Save {
-    meta_data: MetaData,
-}
 
 pub fn jomini() -> Result<(), VicError> {
     let mut zipper: zip::ZipArchive<std::fs::File>;
@@ -64,32 +41,60 @@ pub fn jomini() -> Result<(), VicError> {
     io::copy(&mut file, &mut writer)?;
     // let data = std::str::from_utf8(&writer)?;
 
-    let a = jomini::TextTape::from_slice(&writer).unwrap();
+    use crate::scanner_copy::{JomData, JomIter};
 
-    for i in a.tokens().iter().enumerate() {
-        // println!("{:?}", i.1);
-        if i.0 == 89 {
-            break;
-        }
-    }
+    // let writer = b"
 
-    // let actual: Save = TextDeserializer::from_utf8_slice(&writer).unwrap();
+    // ";
 
-    // println!("{:?}", actual);
-    // panic!("{}", stert);
+    let testdata = JomData::new(&writer);
+    let mut testiter = JomIter::new(&testdata);
+
+
+    let a = super::data::map2::countries::Country::new(std::path::Path::new("/mnt/c/Steam/steamapps/common/Victoria 3").to_path_buf());
+
+    print_test(testiter, 4);
 
     Ok(())
 }
-
+fn print_test(mut inp: crate::scanner_copy::JomIter, mut width: usize) {
+    while let Some(tok) = inp.next() {
+        match tok {
+            jomini::TextToken::Object{end: e, mixed: _} | jomini::TextToken::Array{end: e, mixed: _} => {
+                print!("{:<width$}", " ");
+                println!("{{ {}", e);
+                // std::thread::sleep(std::time::Duration::from_millis(2000));
+            },
+            jomini::TextToken::End(a) => {
+                print!("{:<width$}", " ");
+                println!("}} {}", a);
+            },
+            a => {
+                print!("{:<width$}", " ");
+                println!("{:?}", a);
+                match a {
+                    TextToken::Unquoted(u) => {
+                        match u.to_string().as_str() {
+                            "meta_data" | "ironman" => print_test(inp.new_array(), width + 2),
+                            _ => {}
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100))
+    }
+}
 
 
 pub fn wait() -> bool {
     use std::io::{stdin, stdout, Write};
-    println!("keep this? y/n ");
+    // println!("keep this? y/n ");
     let mut a = String::new();
     let _ = stdout().flush();
     let _ = stdin().read_line(&mut a);
-    println!(">{a:?}<");
+    // println!(">{a:?}<");
     if a == "y\n" {
         true
     } else if a == "n\n" {
